@@ -187,9 +187,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               {hasShowSchedules && (
                 <li>
                   <NavLink
-                    to="/schedule"
+                    to="/schedules"
                     className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
-                      pathname === '/schedule' && 'bg-[#d4e4ff] dark:bg-meta-4'
+                      pathname === '/schedules' && 'bg-[#d4e4ff] dark:bg-meta-4'
                     }`}
                   >
                     <CiViewTable size={25} />
@@ -197,20 +197,100 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   </NavLink>
                 </li>
               )}
-              {hasShowFaculties && (
+
+              {hasShowRooms && (
                 <li>
                   <NavLink
-                    to="/faculty"
+                    to="/rooms"
                     className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
-                      pathname === '/faculty' && 'bg-[#d4e4ff] dark:bg-meta-4'
+                      pathname === '/rooms' && 'bg-[#d4e4ff] dark:bg-meta-4'
                     }`}
                   >
-                    <LiaUniversitySolid size={25} />
-                    Fakültə
+                    <MdOutlineMeetingRoom size={25} />
+                    Otaqlar
+                  </NavLink>
+                </li>
+              )} 
+
+               {hasShowUsers && (
+                <li>
+                  <NavLink
+                    to="/users"
+                    className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
+                      pathname === '/users' && 'bg-[#d4e4ff] dark:bg-meta-4'
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="size-6"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                      />
+                    </svg>
+                    İstifadəçilər
                   </NavLink>
                 </li>
               )}
-              {hasShowDepartments && (
+              {hasShowRoles && (
+                <li>
+                  <NavLink
+                    to="/roles"
+                    className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
+                      pathname === '/roles' && 'bg-[#d4e4ff] dark:bg-meta-4'
+                    }`}
+                  >
+                    <RiUserSettingsLine size={25} />
+                    Rollar
+                  </NavLink>
+                </li>
+              )}
+              {hasShowPermissions && (
+                <li>
+                  <NavLink
+                    to="/permissions"
+                    className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
+                      pathname === '/permissions' &&
+                      'bg-[#d4e4ff] dark:bg-meta-4'
+                    }`}
+                  >
+                    <GiSettingsKnobs size={24} />
+                    İcazələr
+                  </NavLink>
+                </li>
+              )}
+                            {/* {hasShowFaculties && (
+                <li>
+                  <NavLink
+                    to="/faculties"
+                    className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
+                      pathname === '/faculties' && 'bg-[#d4e4ff] dark:bg-meta-4'
+                    }`}
+                  >
+                    <LiaUniversitySolid size={25} />
+                    Fakültələr
+                  </NavLink>
+                </li>
+              )} */}
+               {/* <li>
+                  <NavLink
+                    to="/profile"
+                    className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
+                      pathname === '/profile' &&
+                      'bg-[#d4e4ff] dark:bg-meta-4'
+                    }`}
+                  >
+                    <CgProfile size={24} />
+                    Profil
+                  </NavLink>
+                </li> */}
+                       {/* {hasShowDepartments && (
                 <li>
                   <NavLink
                     to="/department"
@@ -222,7 +302,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                     Kafedra
                   </NavLink>
                 </li>
-              )}
+              )} */}
              
               {/* {hasShowLessonTypes && (
                 <li>
@@ -347,7 +427,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 </li>
               ) : null} */}
 
-                {hasShowSpecialities && (
+                {/* {hasShowSpecialities && (
                 <li>
                   <NavLink
                     to="/specialities"
@@ -360,9 +440,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                     İxtisas
                   </NavLink>
                 </li>
-              )} 
+              )}  */}
 
-              {hasShowDisciplines && (
+              {/* {hasShowDisciplines && (
                 <li>
                   <NavLink
                     to="/lessons"
@@ -374,87 +454,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                     Fənnlər
                   </NavLink>
                 </li>
-              )}
+              )} */}
 
-              {hasShowGroups && (
-                <li>
-                  <NavLink
-                    to="/groups"
-                    className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
-                      pathname === '/groups' && 'bg-[#d4e4ff] dark:bg-meta-4'
-                    }`}
-                  >
-                    <MdGroups size={25} />
-                    Qruplar
-                  </NavLink>
-                </li>
-              )}
-
-               {hasShowUsers && (
-                <li>
-                  <NavLink
-                    to="/users"
-                    className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
-                      pathname === '/users' && 'bg-[#d4e4ff] dark:bg-meta-4'
-                    }`}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="size-6"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
-                      />
-                    </svg>
-                    İstifadəçilər
-                  </NavLink>
-                </li>
-              )}
-              {hasShowRoles && (
-                <li>
-                  <NavLink
-                    to="/role"
-                    className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
-                      pathname === '/role' && 'bg-[#d4e4ff] dark:bg-meta-4'
-                    }`}
-                  >
-                    <RiUserSettingsLine size={25} />
-                    Role
-                  </NavLink>
-                </li>
-              )}
-              {hasShowPermissions && (
-                <li>
-                  <NavLink
-                    to="/permissions"
-                    className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
-                      pathname === '/permissions' &&
-                      'bg-[#d4e4ff] dark:bg-meta-4'
-                    }`}
-                  >
-                    <GiSettingsKnobs size={24} />
-                    İcazələr
-                  </NavLink>
-                </li>
-              )}
-               {/* <li>
-                  <NavLink
-                    to="/profile"
-                    className={`group relative flex items-center gap-2.5 rounded-lg py-2 px-4 font-medium duration-300 ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 ${
-                      pathname === '/profile' &&
-                      'bg-[#d4e4ff] dark:bg-meta-4'
-                    }`}
-                  >
-                    <CgProfile size={24} />
-                    Profil
-                  </NavLink>
-                </li> */}
             </ul>
           </div>
         </nav>

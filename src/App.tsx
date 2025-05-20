@@ -5,7 +5,6 @@ import Loader from './common/Loader';
 import DefaultLayout from './layout/DefaultLayout';
 import { AuthProvider } from './Context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import Forbidden from './pages/Common/Forbidden';
 import NotFound from './pages/Common/404';
 
 // Auth Pages
@@ -16,52 +15,25 @@ import ResetPassword from './pages/Authentication/ResetPassword';
 
 // Dashboard Pages
 import ECommerce from './pages/Dashboard/Dashboard';
-import Profile from './pages/Profile';
-import Settings from './pages/Settings';
-import Tables from './pages/Tables';
+import Profile from './pages/User/Profile';
 
 // User Management Pages
-import UsersTable from './pages/UsersTable';
-import AddNewUser from './pages/AddNewUser';
-import EditUser from './pages/EditUser';
-import UserViewPage from './pages/UserViewPage';
+import UsersTable from './pages/User/UsersTable';
+import AddNewUser from './pages/User/AddNewUser';
+import EditUser from './pages/User/EditUser';
+import UserViewPage from './pages/User/UserViewPage';
 
 // Role & Permission Pages
-import Role from './pages/Role';
-import AddRole from './pages/AddRole';
-import EditRole from './pages/EditRole';
-import PermissionsTable from './pages/PermissionsTable';
-import RoomPermissions from './pages/RoomPermissions';
-import DetailsRoomPermission from './pages/DetailsRoomPermission';
+import RoleTable from './pages/Role Permissions/Role';
+import AddRole from './pages/Role Permissions/AddRole';
+import EditRole from './pages/Role Permissions/EditRole';
+import PermissionsTable from './pages/Role Permissions/PermissionsTable';
 
-// Faculty & Department Pages
-import FacultyPage from './pages/Faculty';
-import DepartmentPage from './pages/Department';
-import FacultyDetails from './pages/FacultyDetails';
-import DeparmentDetails from './pages/DeparmentDetails';
-
-// Academic Pages
-import CoursePage from './pages/CoursePage';
-import Specialities from './pages/Specialities';
-import SpecialityDetails from './pages/SpecialityDetails';
-import Groups from './pages/Groups';
-import GroupDetails from './pages/GroupDetails';
-import LessonsType from './pages/LessonType';
-import Lessons from './pages/Lessons';
-import WeekTypes from './pages/WeekTypes';
-import Smestrs from './pages/Semestrs';
-
-// Facility Pages
-import Corps from './pages/Corps';
-import RoomType from './pages/RoomType';
-import Rooms from './pages/Rooms';
-import RoomDetails from './pages/RoomDetails';
+import Rooms from './pages/Room/Rooms';
 
 // Schedule Pages
-import Hours from './pages/Hours';
-import Schedule from './pages/Schedule';
-import AddScheduleLesson from './pages/AddScheduleLesson';
-import EditLessonInShedule from './pages/EditLessonInShedule';
+import Schedule from './pages/Schedule/Schedule';
+import AddScheduleLesson from './pages/Schedule/AddScheduleLesson';
 
 function App() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -86,7 +58,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-code" element={<VerifyCode />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          
+
           {/* Protected Routes */}
           <Route
             path="/*"
@@ -98,10 +70,8 @@ function App() {
                     <Route path="*" element={<NotFound />} />
                     <Route index element={<ECommerce />} />
                     <Route path="profile" element={<Profile />} />
-                    <Route path="settings" element={<Settings />} />
-                    <Route path="tables" element={<Tables />} />
                     <Route path="forms/form-elements" />
-                    
+
                     {/* User Management Routes */}
                     <Route
                       path="users"
@@ -112,7 +82,7 @@ function App() {
                       }
                     />
                     <Route
-                      path="add-new-user"
+                      path="/user/add"
                       element={
                         <ProtectedRoute requiredPermission="add_user">
                           <AddNewUser />
@@ -120,7 +90,7 @@ function App() {
                       }
                     />
                     <Route
-                      path="edit-user/:id"
+                      path="/user/edit/:id"
                       element={
                         <ProtectedRoute requiredPermission="edit_user">
                           <EditUser />
@@ -128,25 +98,25 @@ function App() {
                       }
                     />
                     <Route
-                      path="view-user/:id"
+                      path="/user/view/:id"
                       element={
                         <ProtectedRoute requiredPermission="view_user">
                           <UserViewPage />
                         </ProtectedRoute>
                       }
                     />
-                    
+
                     {/* Role & Permission Routes */}
                     <Route
-                      path="role"
+                      path="roles"
                       element={
                         <ProtectedRoute requiredPermission="view_roles">
-                          <Role />
+                          <RoleTable />
                         </ProtectedRoute>
                       }
                     />
                     <Route
-                      path="add-role"
+                      path="/role/add"
                       element={
                         <ProtectedRoute requiredPermission="add_role">
                           <AddRole />
@@ -154,7 +124,7 @@ function App() {
                       }
                     />
                     <Route
-                      path="edit-role/:id"
+                      path="/role/edit/:id"
                       element={
                         <ProtectedRoute requiredPermission="edit_role">
                           <EditRole />
@@ -170,140 +140,6 @@ function App() {
                       }
                     />
                     <Route
-                      path="room-permissions"
-                      element={
-                        <ProtectedRoute requiredPermission="view_room_permissions">
-                          <RoomPermissions />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="room-permissions/:id"
-                      element={
-                        <ProtectedRoute requiredPermission="view_room_permission">
-                          <DetailsRoomPermission />
-                        </ProtectedRoute>
-                      }
-                    />
-                    
-                    {/* Faculty & Department Routes */}
-                    <Route
-                      path="faculty"
-                      element={
-                        <ProtectedRoute requiredPermission="view_faculties">
-                          <FacultyPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="department"
-                      element={
-                        <ProtectedRoute requiredPermission="view_departments">
-                          <DepartmentPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    {/* <Route
-                      path="departments/:id"
-                      element={
-                        <ProtectedRoute requiredPermission="view_department">
-                          <DeparmentDetails />
-                        </ProtectedRoute>
-                      }
-                    /> */}
-                    
-                    {/* Academic Routes */}
-                    <Route
-                      path="course"
-                      element={
-                        <ProtectedRoute requiredPermission="view_courses">
-                          <CoursePage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="specialities"
-                      element={
-                        <ProtectedRoute requiredPermission="view_specialities">
-                          <Specialities />
-                        </ProtectedRoute>
-                      }
-                    />
-                    {/* <Route
-                      path="specialities/:id"
-                      element={
-                        <ProtectedRoute requiredPermission="view_speciality">
-                          <SpecialityDetails />
-                        </ProtectedRoute>
-                      }
-                    /> */}
-                    <Route
-                      path="groups"
-                      element={
-                        <ProtectedRoute requiredPermission="view_groups">
-                          <Groups />
-                        </ProtectedRoute>
-                      }
-                    />
-                    {/* <Route
-                      path="groups/:id"
-                      element={
-                        <ProtectedRoute requiredPermission="view_group">
-                          <GroupDetails />
-                        </ProtectedRoute>
-                      }
-                    /> */}
-                    <Route
-                      path="lesson-type"
-                      element={
-                        <ProtectedRoute requiredPermission="view_lesson_types">
-                          <LessonsType />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="lessons"
-                      element={
-                        <ProtectedRoute requiredPermission="view_disciplines">
-                          <Lessons />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="week-types"
-                      element={
-                        <ProtectedRoute requiredPermission="view_week_types">
-                          <WeekTypes />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="semesters"
-                      element={
-                        <ProtectedRoute requiredPermission="view_semesters">
-                          <Smestrs />
-                        </ProtectedRoute>
-                      }
-                    />
-                    
-                    {/* Facility Routes */}
-                    <Route
-                      path="corps"
-                      element={
-                        <ProtectedRoute requiredPermission="view_corps">
-                          <Corps />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="room-types"
-                      element={
-                        <ProtectedRoute requiredPermission="view_room_types">
-                          <RoomType />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
                       path="rooms"
                       element={
                         <ProtectedRoute requiredPermission="view_rooms">
@@ -311,26 +147,8 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                    {/* <Route
-                      path="rooms/:id"
-                      element={
-                        <ProtectedRoute requiredPermission="view_room">
-                          <RoomDetails />
-                        </ProtectedRoute>
-                      }
-                    /> */}
-                    
-                    {/* Schedule Routes */}
                     <Route
-                      path="hours"
-                      element={
-                        <ProtectedRoute requiredPermission="view_hours">
-                          <Hours />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="schedule"
+                      path="schedules"
                       element={
                         <ProtectedRoute requiredPermission="view_schedules">
                           <Schedule />
@@ -338,21 +156,13 @@ function App() {
                       }
                     />
                     <Route
-                      path="add-schedule-lesson"
+                      path="/schedule/add"
                       element={
                         <ProtectedRoute requiredPermission="add_schedule">
                           <AddScheduleLesson />
                         </ProtectedRoute>
                       }
                     />
-                    {/* <Route
-                      path="schedule-lesson/:id"
-                      element={
-                        <ProtectedRoute requiredPermission="edit_schedule">
-                          <EditLessonInShedule />
-                        </ProtectedRoute>
-                      }
-                    /> */}
                   </Routes>
                 </DefaultLayout>
               </ProtectedRoute>

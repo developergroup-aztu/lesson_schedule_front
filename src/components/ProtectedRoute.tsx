@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 import usePermissions from '../hooks/usePermissions';
-import Forbidden from '../pages/Common/Forbidden';
+import Forbidden from '../pages/Common/403';
 
 interface ProtectedRouteProps {
   children: JSX.Element;
