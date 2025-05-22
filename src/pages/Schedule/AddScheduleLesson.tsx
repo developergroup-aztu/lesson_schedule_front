@@ -1,134 +1,129 @@
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { get, post, put } from '../../api/service';
 import { useNavigate, useParams } from 'react-router-dom';
-import Select from 'react-select';
 import Swal from 'sweetalert2';
+import { 
+  ProfessorSelect, 
+  GroupSelect, 
+  RoomSelect, 
+  DisciplineSelect, 
+  DaySelect,
+  VirtualSelect
+} from '../../components/Select/ScheduleSelect';
+
+interface FormData {
+  group_id: number[];
+  day_id: number;
+  hour_id: string;
+  subject_id: string;
+  lesson_type_id: string;
+  week_type_id: string;
+  teacher_id: string;
+  room_id: string;
+}
 
 const AddScheduleLesson = () => {
-  const [faculties, setFaculties] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [filteredDepartments, setFilteredDepartments] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [corps, setCorps] = useState([]);
-  const [rooms, setRooms] = useState([]);
-  const [filteredRooms, setFilteredRooms] = useState([]);
-  const [lessonTypes, setLessonTypes] = useState([]);
-  const [lessonHours, setLessonHours] = useState([]);
-  const [hours, setHours] = useState([]);
-  const [semesters, setSemesters] = useState([]);
-  const [weekTypes, setWeekTypes] = useState([]);
-  const [days, setDays] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
-  const [disciplines, setDisciplines] = useState([]);
-  const [filteredDisciplines, setFilteredDisciplines] = useState([]);
   const navigate = useNavigate();
-  const { id } = useParams();
-  const [formData, setFormData] = useState({
-    faculty_id: '',
-    department_id: '',
+  const { id } = useParams<{ id: string }>();
+  
+  const [formData, setFormData] = useState<FormData>({
     group_id: [],
-    corp_id: '',
-    room_id: '',
-    lesson_type_id: '',
-    lesson_type_hour_id: '',
-    hour_id: '',
-    semester_id: '',
-    week_type_id: '',
     day_id: '',
-    user_id: '',
-    discipline_id: '',
+    hour_id: '',
+    subject_id: '',
+    lesson_type_id: '',
+    week_type_id: '',
+    teacher_id: '',
+    room_id: '',
   });
 
-  const fetchData = async (endpoint, setState) => {
-    try {
-      const response = await get(endpoint);
-      setState(response.data);
-    } catch (error) {
-      console.error(`Error fetching ${endpoint}:`, error);
-    }
-  };
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchData('/api/groups', setGroups);
-    fetchData('/api/corps', setCorps);
-    fetchData('/api/rooms', setRooms);
-    fetchData('/api/lesson_types', setLessonTypes);
-    fetchData('/api/lesson-hours', setLessonHours);
-    fetchData('/api/hours', setHours);
-    fetchData('/api/semesters', setSemesters);
-    fetchData('/api/week_types', setWeekTypes);
-    fetchData('/api/days', setDays);
-    fetchData('/api/users', setUsers);
-    fetchData('/api/faculties', setFaculties);
-    fetchData('/api/departments', setDepartments);
-    fetchData('/api/disciplines', setDisciplines);
-  }, []);
-
+  // Load existing schedule data if editing
   useEffect(() => {
     if (id) {
-      fetchData(`/api/schedules/${id}`, setFormData);
+      const fetchScheduleData = async () => {
+        try {
+          const response = await get(`/api/schedules/${id}`);
+          setFormData(response.data);
+        } catch (error) {
+          console.error('Error fetching schedule data:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Xəta',
+            text: 'Məlumatlar yüklənərkən xəta baş verdi',
+          });
+        }
+      };
+      fetchScheduleData();
     }
   }, [id]);
 
-  useEffect(() => {
-    if (formData.faculty_id) {
-      const filtered = departments.filter(
-        (department) => department.faculty_id === parseInt(formData.faculty_id),
-      );
-      setFilteredDepartments(filtered);
-    } else {
-      setFilteredDepartments([]);
+  // Handle form field changes
+  const handleFieldChange = (value: any, { name }: { name: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear field error when user starts typing
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
-  }, [formData.faculty_id, departments]);
-
-  useEffect(() => {
-    if (formData.department_id) {
-      const filteredDisciplines = disciplines.filter(
-        (discipline) =>
-          discipline.department_id === parseInt(formData.department_id),
-      );
-      setFilteredDisciplines(filteredDisciplines);
-
-      const filteredUsers = users.filter((user) =>
-        user.department_names && Object.values(user.department_names).includes(parseInt(formData.department_id)),
-      );
-      setFilteredUsers(filteredUsers);
-    } else {
-      setFilteredDisciplines([]);
-      setFilteredUsers([]);
-    }
-  }, [formData.department_id, disciplines, users]);
-
-  useEffect(() => {
-    if (formData.corp_id) {
-      const filteredRooms = rooms.filter(
-        (room) => room.corp_id === parseInt(formData.corp_id),
-      );
-      setFilteredRooms(filteredRooms);
-    } else {
-      setFilteredRooms([]);
-    }
-  }, [formData.corp_id, rooms]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
   };
 
-  const handleGroupChange = (selectedOptions) => {
-    const groupIds = selectedOptions ? selectedOptions.map(option => option.value) : [];
-    setFormData({
-      ...formData,
-      group_id: groupIds,
-    });
+  // Form validation
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.group_id || formData.group_id.length === 0) {
+      errors.group_id = 'Qrup seçilməlidir';
+    }
+    if (!formData.day_id) {
+      errors.day_id = 'Gün seçilməlidir';
+    }
+    if (!formData.hour_id) {
+      errors.hour_id = 'Saat seçilməlidir';
+    }
+    if (!formData.subject_id) {
+      errors.discipline_id = 'Fənn seçilməlidir';
+    }
+    if (!formData.lesson_type_id) {
+      errors.lesson_type_id = 'Dərs tipi seçilməlidir';
+    }
+    if (!formData.week_type_id) {
+      errors.week_type_id = 'Həftə tipi seçilməlidir';
+    }
+    if (!formData.teacher_id) {
+      errors.teacher_id = 'Müəllim seçilməlidir';
+    }
+    // if (!formData.room_id) {
+    //   errors.room_id = 'Otaq seçilməlidir';
+    // }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Xəta',
+        text: 'Zəhmət olmasa bütün sahələri doldurun',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
     try {
       if (id) {
         await put(`/api/schedules/${id}`, formData);
@@ -136,6 +131,8 @@ const AddScheduleLesson = () => {
           icon: 'success',
           title: 'Yeniləndi',
           text: 'Dərs uğurla yeniləndi',
+          timer: 2000,
+          showConfirmButton: false
         });
       } else {
         await post('/api/schedules', formData);
@@ -143,272 +140,258 @@ const AddScheduleLesson = () => {
           icon: 'success',
           title: 'Əlavə edildi',
           text: 'Dərs uğurla əlavə edildi',
+          timer: 2000,
+          showConfirmButton: false
         });
       }
-      navigate('/schedule');
-    } catch (error) {
-      console.error('Error adding/updating schedule lesson:', error);
-      if (error.response && error.response.data && error.response.data.message) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: error.response.data.message,
+      navigate('/schedules');
+    } catch (error: any) {
+      console.error('Error saving schedule:', error);
+      
+      if (error.response?.status === 422 && error.response?.data?.errors) {
+        // Validation errors from backend
+        const backendErrors = error.response.data.errors;
+        const errorMessages: Record<string, string> = {};
+        
+        Object.keys(backendErrors).forEach(key => {
+          errorMessages[key] = Array.isArray(backendErrors[key]) 
+            ? backendErrors[key][0] 
+            : backendErrors[key];
         });
-      } else if (error.response && error.response.data && error.response.data.errors) {
-        const errorMessages = Object.values(error.response.data.errors).flat().join(', ');
+        
+        setFormErrors(errorMessages);
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Validasiya xətası',
+          text: 'Zəhmət olmasa formdakı xətaları düzəldin',
+        });
+      } else if (error.response?.data?.message) {
         Swal.fire({
           icon: 'error',
           title: 'Xəta',
-          text: errorMessages,
+          text: error.response.data.message,
         });
       } else {
         Swal.fire({
           icon: 'error',
           title: 'Xəta',
-          text: 'Dərs cədvələ əlavə olunarkən xəta baş verdi',
+          text: 'Dərs yadda saxlanılarkən xəta baş verdi',
         });
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const groupOptions = groups.map(group => ({
-    value: group.id,
-    label: group.name,
-  }));
-
-  const getDayName = (dayNumber) => {
-    const dayNames = {
-      '1': 'Bazar ertəsi',
-      '2': 'Çərşənbə axşamı',
-      '3': 'Çərşənbə',
-      '4': 'Cümə axşamı',
-      '5': 'Cümə',
-    };
-    return dayNames[dayNumber] || dayNumber;
-  };
-
   return (
-    <div className="grid md:grid-cols-2 m-5 md:m-10 gap-4">
-      <h2 className="col-span-2 text-center text-2xl font-bold">
-        {id ? 'Dərsi Redaktə Et' : 'Dərs Cədvəlinə Dərs Əlavə Et'}
-      </h2>
-      <form
-        onSubmit={handleSubmit}
-        className="col-span-2 grid grid-cols-2 gap-4"
-      >
-        <div>
-          <label className="block font-medium">Fakültə:</label>
-          <select
-            name="faculty_id"
-            value={formData.faculty_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {faculties.map((faculty) => (
-              <option key={faculty.id} value={faculty.id}>
-                {faculty.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Kafedra:</label>
-          <select
-            name="department_id"
-            value={formData.department_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {filteredDepartments.map((department) => (
-              <option key={department.id} value={department.id}>
-                {department.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Qrup:</label>
-          <Select
-            isMulti
-            name="group_id"
-            value={groupOptions.filter(option => formData.group_id.includes(option.value))}
-            onChange={handleGroupChange}
-            options={groupOptions}
-            className="basic-multi-select"
-            classNamePrefix="select"
-          />
-        </div>
-        <div>
-          <label className="block font-medium">Korpus:</label>
-          <select
-            name="corp_id"
-            value={formData.corp_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {corps.map((corp) => (
-              <option key={corp.id} value={corp.id}>
-                {corp.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Otaq:</label>
-          <select
-            name="room_id"
-            value={formData.room_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {filteredRooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.name} - {room.room_type.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Dərs Tipi:</label>
-          <select
-            name="lesson_type_id"
-            value={formData.lesson_type_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {lessonTypes.map((lessonType) => (
-              <option key={lessonType.id} value={lessonType.id}>
-                {lessonType.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Dərs Saatları:</label>
-          <select
-            name="lesson_type_hour_id"
-            value={formData.lesson_type_hour_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {lessonHours.map((lessonHour) => (
-              <option key={lessonHour.id} value={lessonHour.id}>
-                {lessonHour.hour}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Saat:</label>
-          <select
-            name="hour_id"
-            value={formData.hour_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {hours.map((hour) => (
-              <option key={hour.id} value={hour.id}>
-                {hour.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Semestr:</label>
-          <select
-            name="semester_id"
-            value={formData.semester_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {semesters.map((semester) => (
-              <option key={semester.id} value={semester.id}>
-              {semester.year}  - {semester.semester_num} 
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Həftə Tipi:</label>
-          <select
-            name="week_type_id"
-            value={formData.week_type_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {weekTypes.map((weekType) => (
-              <option key={weekType.id} value={weekType.id}>
-                {weekType.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Gün:</label>
-          <select
-            name="day_id"
-            value={formData.day_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {days.map((day) => (
-              <option key={day.id} value={day.id}>
-                {getDayName(day.name)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Müəllim:</label>
-          <select
-            name="user_id"
-            value={formData.user_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {filteredUsers.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block font-medium">Fənn:</label>
-          <select
-            name="discipline_id"
-            value={formData.discipline_id}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-400"
-          >
-            <option value="">Seçin</option>
-            {filteredDisciplines.map((discipline) => (
-              <option key={discipline.id} value={discipline.id}>
-                {discipline.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="col-span-2 text-center">
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              {id ? 'Dərsi Redaktə Et' : 'Yeni Dərs Əlavə Et'}
+            </h1>
+            <p className="mt-2 text-gray-600">
+              {id ? 'Mövcud dərsin məlumatlarını yeniləyin' : 'Dərs cədvəlinə yeni dərs əlavə edin'}
+            </p>
+          </div>
+          
           <button
-            type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full"
+            type="button"
+            onClick={() => navigate('/schedules')}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           >
-            {id ? 'Yenilə' : 'Əlavə et'}
+            ← Geri qayıt
           </button>
         </div>
-      </form>
+      </div>
+
+      {/* Form */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <form onSubmit={handleSubmit} className="p-6 md:p-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Qrup */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                Qrup <span className="text-red-500">*</span>
+              </label>
+              <GroupSelect
+                value={formData.group_id}
+                onChange={handleFieldChange}
+                name="group_id"
+                error={formErrors.group_id}
+                
+                required
+              />
+            </div>
+
+            {/* Gün */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                Gün <span className="text-red-500">*</span>
+              </label>
+              <DaySelect
+                value={formData.day_id}
+                onChange={handleFieldChange}
+                name="day_id"
+                error={formErrors.day_id}
+                required
+              />
+            </div>
+
+            {/* Saat */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                Saat <span className="text-red-500">*</span>
+              </label>
+              <VirtualSelect
+                value={formData.hour_id}
+                onChange={handleFieldChange}
+                name="hour_id"
+                apiEndpoint="/api/hours"
+                labelKey="time"
+                searchKeys={['time']}
+                placeholder="Saat seçin"
+                searchPlaceholder="Saat axtarın..."
+                noDataText="Saat tapılmadı"
+                error={formErrors.hour_id}
+                required
+              />
+            </div>
+
+            {/* Fənn */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                Fənn <span className="text-red-500">*</span>
+              </label>
+              <DisciplineSelect
+                value={formData.subject_id}
+                onChange={handleFieldChange}
+                name="subject_id"
+                error={formErrors.subject_id}
+                required
+              />
+            </div>
+
+            {/* Dərs Tipi */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                Dərs Tipi <span className="text-red-500">*</span>
+              </label>
+              <VirtualSelect
+                value={formData.lesson_type_id}
+                onChange={handleFieldChange}
+                name="lesson_type_id"
+                apiEndpoint="/api/lesson_types"
+                labelKey="lesson_type"
+                searchKeys={['lesson_type']}
+                placeholder="Dərs tipi seçin"
+                searchPlaceholder="Dərs tipi axtarın..."
+                noDataText="Dərs tipi tapılmadı"
+                error={formErrors.lesson_type_id}
+                required
+              />
+            </div>
+
+            {/* Həftə Tipi */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                Həftə Tipi <span className="text-red-500">*</span>
+              </label>
+              <VirtualSelect
+                value={formData.week_type_id}
+                onChange={handleFieldChange}
+                name="week_type_id"
+                apiEndpoint="/api/week_types"
+                labelKey="week_type"
+                searchKeys={['week_type']}
+                placeholder="Həftə tipi seçin"
+                searchPlaceholder="Həftə tipi axtarın..."
+                noDataText="Həftə tipi tapılmadı"
+                error={formErrors.week_type_id}
+                required
+              />
+            </div>
+
+            {/* Müəllim */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                Müəllim <span className="text-red-500">*</span>
+              </label>
+              <ProfessorSelect
+                value={formData.teacher_id}
+                onChange={handleFieldChange}
+                name="teacher_id"
+                error={formErrors.teacher_id}
+                required
+              />
+            </div>
+
+            {/* Otaq */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                Otaq <span className="text-red-500">*</span>
+              </label>
+              <RoomSelect
+                value={formData.room_id}
+                onChange={handleFieldChange}
+                name="room_id"
+                error={formErrors.room_id}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => navigate('/schedule')}
+                disabled={isSubmitting}
+                className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Ləğv et
+              </button>
+              
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-6 py-3 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    {id ? 'Yenilənir...' : 'Əlavə edilir...'}
+                  </>
+                ) : (
+                  id ? 'Yenilə' : 'Əlavə et'
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {/* Helper Text */}
+      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="flex items-start">
+          <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          <div>
+            <h3 className="text-sm font-medium text-blue-800 mb-1">Məlumat</h3>
+            <div className="text-sm text-blue-700 space-y-1">
+              <p>• Bütün sahələr mütləqdir və doldurulmalıdır</p>
+              <p>• Qrup sahəsində birdən çox qrup seçə bilərsiniz</p>
+              <p>• Axtarış sahəsindən istifadə edərək tez tapın</p>
+              <p>• Keyboard navigation: ↑↓ hərəkət, Enter seçim, Esc bağla</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

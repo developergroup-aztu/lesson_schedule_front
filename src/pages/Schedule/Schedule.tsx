@@ -4,6 +4,7 @@ import ClipLoader from 'react-spinners/ClipLoader';
 import { useNavigate } from 'react-router-dom';
 import usePermissions from '../../hooks/usePermissions';
 import Breadcrumb from '../../components/Breadcrumbs/Breadcrumb';
+ 
 
 interface Lesson {
   schedule_id: number;
@@ -117,6 +118,11 @@ const Schedule: React.FC = () => {
     };
     return dayNames[dayNumber] || dayNumber;
   };
+  
+
+  
+
+
 
   const renderScheduleTable = (
     shiftHours: Hour[],
@@ -126,162 +132,6 @@ const Schedule: React.FC = () => {
       return null;
     }
 
-    return (
-      <div className="overflow-x-auto text-sm">
-        <table className="min-w-full mb-5 mt-5 bg-white dark:bg-gray-700">
-          <thead>
-            <tr className="bg-gray-200 dark:bg-gray-900">
-              <th className="py-2 px-6 border-b-2 border-gray-500 dark:border-gray-500 border-r-2">Qrup</th>
-              {days.map((day) => (
-                <th
-                  key={day.id}
-                  className="py-2 px-6 border-b-2 border-l-2 border-gray-500 dark:border-gray-500 border-r-2"
-                  colSpan={shiftHours.length}
-                >
-                  {getDayName(day.name)}
-                </th>
-              ))}
-            </tr>
-            <tr className="bg-gray-200 dark:bg-gray-800">
-              <th className="py-2 px-6 border-b-2 border-gray-500 dark:border-gray-500 border-r-2"></th>
-              {days.map((day) =>
-                shiftHours.map((hour) => (
-                  <th
-                    key={`${day.id}-${hour.id}`}
-                    className="py-2 px-6 border-b-2 border-l-2 border-gray-500 dark:border-gray-500 border-r-2"
-                  >
-                    {hour.name}
-                  </th>
-                )),
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {Object.keys(lessons).map((groupId) => (
-              <tr key={groupId}>
-                <td className="py-2 px-6 border-b-2 border-gray-500  dark:border-gray-500 border-r-2">
-                  {lessons[groupId][0].group_name}
-                </td>
-                {days.map((day, dayIndex) =>
-                  shiftHours.map((hour, hourIndex) => {
-                    const upperWeekLesson = lessons[groupId].find(
-                      (l) =>
-                        l.day_name === day.name &&
-                        l.hour_name === hour.name &&
-                        l.week_type_name === 'üst həftə',
-                    );
-                    const lowerWeekLesson = lessons[groupId].find(
-                      (l) =>
-                        l.day_name === day.name &&
-                        l.hour_name === hour.name &&
-                        l.week_type_name === 'alt həftə',
-                    );
-                    const singleLesson = lessons[groupId].find(
-                      (l) =>
-                        l.day_name === day.name &&
-                        l.hour_name === hour.name &&
-                        l.week_type_name === 'ümumi həftə',
-                    );
-                    const lesson = singleLesson || upperWeekLesson || lowerWeekLesson;
-                    const isPending = lesson && lesson.confirm_status === 0;
-                    return (
-                      <td
-                        key={`${day.id}-${hour.id}`}
-                        className={`py-2 px-2 border-b border-r-2  border-gray-500 dark:border-gray-500 text-center cursor-pointer ${
-                          hourIndex === shiftHours.length - 1 ? 'border-r-2' : ''
-                        } ${isPending ? '' : ''}`}
-                        style={{ minWidth: '150px', maxWidth: '200px', borderBottom: '2px solid gray' }}
-                      
-                      >
-                        {singleLesson ? (
-                          <div   onClick={() => {
-                            if (singleLesson) {
-                              navigate(`/schedule-lesson/${singleLesson.schedule_id}`);
-                            }
-                          }} className={`w-full hover:text-blue-600 ${isPending ? 'text-yellow-400' : ''}`}>                            <div>{singleLesson.discipline_name}</div>
-                            <div>{singleLesson.user_name}</div>
-                            <div>
-                              {singleLesson.corp_name} -{' '}
-                              {singleLesson.room_name}
-                            </div>
-                            <div>{singleLesson.lesson_type_name}</div>
-                            {isPending && <div>icazəli otaq</div>}
-                          </div>
-                        ) : upperWeekLesson || lowerWeekLesson ? (
-                          <div className="flex flex-col h-full">
-                            {upperWeekLesson ? (
-                              <div
-                              onClick={() => {
-                                if (upperWeekLesson) {
-                                  navigate(`/schedule-lesson/${upperWeekLesson.schedule_id}`);
-                                }
-                              }}
-                              className={
-                                lowerWeekLesson
-                                  ? `border-b dark:border-gray-500 hover:text-blue-600 border-gray-300 ${isPending ? 'text-yellow-400' : ''}`
-                                  : `hover:text-blue-600 ${isPending ? 'text-yellow-400' : ''}`
-                              }
-                              
-                              >
-                                <div>{upperWeekLesson.discipline_name}</div>
-                                <div>{upperWeekLesson.user_name}</div>
-                                <div>
-                                  {upperWeekLesson.corp_name} -{' '}
-                                  {upperWeekLesson.room_name}
-                                </div>
-                                <div>
-                                  {upperWeekLesson.lesson_type_name}
-                                </div>
-                                {isPending && <div>icazəli otaq</div>}
-                              </div>
-                            ) : lowerWeekLesson ? (
-                              <div className="mb-2">
-                                <div>Dərs yoxdur</div>
-                              </div>
-                            ) : null}
-                            {lowerWeekLesson ? (
-                              <div
-                              onClick={() => {
-                                if (lowerWeekLesson) {
-                                  navigate(`/schedule-lesson/${lowerWeekLesson.schedule_id}`);
-                                }
-                              }}
-                              className={
-                                upperWeekLesson
-                                  ? `hover:text-blue-600 ${isPending ? 'text-yellow-400' : ''}`
-                                  : `border-t-2 pt-2 hover:text-blue-600 border-gray-300 ${isPending ? 'text-yellow-400' : ''}`
-                              }
-                              
-                              >
-                                <div>{lowerWeekLesson.discipline_name}</div>
-                                <div>{lowerWeekLesson.user_name}</div>
-                                <div>
-                                  {lowerWeekLesson.corp_name}-{'korp. '}
-                                  {lowerWeekLesson.room_name}-otağ
-                                </div>
-                                <div>
-                                  {lowerWeekLesson.lesson_type_name}</div>
-                                {isPending && <div>icazəli otaq</div>}
-                              </div>
-                            ) : upperWeekLesson ? (
-                              <div className="border-t-2 border-gray-300">
-                                <div>Dərs yoxdur</div>
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : (
-                          'Boş'
-                        )}
-                      </td>
-                    );
-                  }),
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
   };
 
   const filterLessonsByShift = (lessons: { [key: string]: Lesson[] }, shiftHours: string[]) => {
