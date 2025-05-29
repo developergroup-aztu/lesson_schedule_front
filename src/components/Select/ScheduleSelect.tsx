@@ -34,9 +34,9 @@ const VirtualSelect = ({
   disabled = false,
   required = false,
   error = null,
-  height = 240,
-  itemHeight = 48,
-  maxVisibleItems = 5,
+  height = 120,
+  itemHeight = 30,
+  maxVisibleItems = 4,
   noDataText = "Məlumat tapılmadı",
   searchPlaceholder = "Axtarış...",
   options: staticOptions = null, // For static options (like days)
@@ -361,6 +361,7 @@ const VirtualSelect = ({
                 itemCount={filteredOptions.length}
                 itemSize={itemHeight}
                 width="100%"
+
               >
                 {({ index, style }) => {
                   const option = filteredOptions[index];

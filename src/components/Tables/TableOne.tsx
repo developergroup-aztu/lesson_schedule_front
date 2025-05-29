@@ -49,13 +49,57 @@ const brandData: BRAND[] = [
 ];
 
 const TableOne = () => {
+  const handlePrint = () => {
+    const printContent = document.getElementById('printable-table');
+    const originalContents = document.body.innerHTML;
+    
+    if (printContent) {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Table Print</title>
+              <style>
+                body { margin: 0; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+                @media print {
+                  body { padding: 0; }
+                  table { page-break-inside: auto; }
+                  tr { page-break-inside: avoid; page-break-after: auto; }
+                }
+              </style>
+            </head>
+            <body>
+              ${printContent.outerHTML}
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }
+    }
+  };
+
   return (
     <div className="rounded-lg border border-stroke bg-white px-5 pt-6 pb-2.5 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:pb-1">
-      <h4 className="mb-6 text-xl font-semibold text-black dark:text-white">
-        Top Channels
-      </h4>
+      <div className="flex justify-between items-center mb-6">
+        <h4 className="text-xl font-semibold text-black dark:text-white">
+          Top Channels
+        </h4>
+        <button
+          onClick={handlePrint}
+          className="inline-flex items-center justify-center rounded-md bg-primary py-2 px-4 text-white hover:bg-opacity-90"
+        >
+          Print Table
+        </button>
+      </div>
 
-      <div className="flex flex-col">
+      <div id="printable-table" className="flex flex-col">
         <div className="grid grid-cols-3 rounded-lg bg-gray-2 dark:bg-meta-4 sm:grid-cols-5">
           <div className="p-2.5 xl:p-5">
             <h5 className="text-sm font-medium uppercase xsm:text-base">

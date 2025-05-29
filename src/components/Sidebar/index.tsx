@@ -115,7 +115,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       duration-300 ease-linear dark:bg-boxdark lg:static lg:translate-x-0 
       ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >    
-      <div className={`flex items-center justify-between ${collapsed ? 'px-2 py-5.5' : 'px-6 py-5.5'} lg:py-6.5`}>
+      <div className={`flex items-center justify-between ${collapsed ? 'px-2 py-5.5' : 'px-6 py-5.5'} lg:py-6`}>
         {!collapsed && (
           <NavLink to="/" className="flex gap-1 font-bold dark:text-white text-[#0D1F61]">
             <img src={Logo} alt="" className="h-9" />
@@ -147,7 +147,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           aria-expanded={sidebarOpen}
           className={`block lg:hidden ${collapsed ? 'mx-auto' : ''}`}
         >
-          <Menu size={20} />
+          <ChevronLeft size={20} />
         </button>
       </div>
 

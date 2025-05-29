@@ -10,8 +10,8 @@ interface ContextMenuProps {
   dayId: number | null;
   hourId: number | null;
   lessonIndex: number | null;
-  onEdit: () => void;
   weekTypeId: number | null;
+  onEdit: () => void;
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -23,7 +23,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   hourId,
   lessonIndex,
   weekTypeId,
-  onEdit
+  onEdit,
 }) => {
   const { deleteLesson, toggleBlockStatus, scheduleData } = useSchedule();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -83,7 +83,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     onClose();
   };
 
-  // Position menu relative to click, ensuring it stays within viewport
   const menuStyle: React.CSSProperties = {
     position: 'fixed',
     top: `${position.y}px`,
@@ -92,28 +91,26 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   };
 
   return (
-    <div 
+    <div
       ref={menuRef}
-      className="bg-white rounded-md shadow-lg border border-gray-200 py-1 w-48"
+      className="bg-[#ffffff2e] backdrop-blur-md rounded-md shadow-lg border border-gray-200 py-1 w-48"
       style={menuStyle}
     >
-      <button 
+      <button
         onClick={handleEdit}
         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
       >
         <Edit size={16} className="mr-2" />
         <span>Redaktə et</span>
       </button>
-      
-      <button 
+      <button
         onClick={handleDelete}
         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
       >
         <Trash size={16} className="mr-2" />
         <span>Sil</span>
       </button>
-      
-      <button 
+      <button
         onClick={handleToggleBlock}
         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
       >

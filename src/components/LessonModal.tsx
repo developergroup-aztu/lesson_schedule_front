@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useSchedule } from '../context/ScheduleContext';
-import { Lesson, Room, Teacher, Subject, ModalData } from '../types';
 import { X } from 'lucide-react';
-import { dayNames } from '../data/mockData';
+import { useSchedule } from '../context/ScheduleContext';
+import { Lesson, ModalData } from '../types/Schedule';
+import { dayNames, mockScheduleData } from '../data/mockData';
+import {
+  ProfessorSelect,
+  GroupSelect,
+  RoomSelect,
+  DisciplineSelect,
+  DaySelect,
+  VirtualSelect
+} from './Select/ScheduleSelect';
+import { post } from '../api/service';
 
 interface LessonModalProps {
   isOpen: boolean;
@@ -12,296 +21,234 @@ interface LessonModalProps {
 
 const LessonModal: React.FC<LessonModalProps> = ({ isOpen, onClose, modalData }) => {
   const { scheduleData, addLesson, editLesson } = useSchedule();
-  
-  // Initial form state
-  const initialFormState = {
-    subject_id: 0,
-    subject_name: '',
-    lesson_type_id: 1,
-    teacher: {
-      code: '',
-      name: '',
-      surname: ''
-    },
-    room: {
-      room_id: 0,
-      room_name: ''
-    },
-    week_type_id: 1,
-    blocked: false
-  };
-  
-  const [formData, setFormData] = useState<Lesson>(initialFormState);
-  const [teacherName, setTeacherName] = useState('');
-  const [teacherSurname, setTeacherSurname] = useState('');
-  
+
+  // Form state
+  const [formData, setFormData] = useState<any>({
+    group_id: modalData.groupId ? [modalData.groupId] : [],
+    day_id: modalData.dayId || '',
+    hour_id: modalData.hourId || '',
+    subject_id: '',
+    lesson_type_id: '',
+    week_type_id: '',
+    teacher_id: '',
+    room_id: '',
+  });
+
   // Populate form with data when editing
   useEffect(() => {
     if (modalData.lesson) {
-      setFormData(modalData.lesson);
-      setTeacherName(modalData.lesson.teacher.name);
-      setTeacherSurname(modalData.lesson.teacher.surname);
-    } else {
-      // Set default values for a new lesson
       setFormData({
-        ...initialFormState,
-        week_type_id: modalData.mode === 'add' ? modalData.lessonIndex || 1 : 1,
+        group_id: [modalData.groupId],
+        day_id: modalData.dayId,
+        hour_id: modalData.hourId,
+        subject_id: modalData.lesson.subject_id,
+        lesson_type_id: modalData.lesson.lesson_type_id,
+        week_type_id: modalData.lesson.week_type_id,
+        teacher_id: modalData.lesson.teacher?.user_id || '',
+        room_id: modalData.lesson.room?.room_id || '',
       });
-      setTeacherName('');
-      setTeacherSurname('');
+    } else {
+      setFormData({
+        group_id: modalData.groupId ? [modalData.groupId] : [],
+        day_id: modalData.dayId || '',
+        hour_id: modalData.hourId || '',
+        subject_id: '',
+        lesson_type_id: '',
+        week_type_id: '',
+        teacher_id: '',
+        room_id: '',
+      });
     }
   }, [modalData]);
-  
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-    const { name, value } = e.target;
-    
-    // Handle select change for objects like subject, room
-    if (name === 'subject_id') {
-      const subject = scheduleData.subjects.find(s => s.subject_id === parseInt(value));
-      if (subject) {
-        setFormData({
-          ...formData,
-          subject_id: subject.subject_id,
-          subject_name: subject.subject_name
-        });
-      }
-    } else if (name === 'room_id') {
-      const room = scheduleData.rooms.find(r => r.room_id === parseInt(value));
-      if (room) {
-        setFormData({
-          ...formData,
-          room: room
-        });
-      }
-    } else if (name === 'teacher_name') {
-      setTeacherName(value);
-    } else if (name === 'teacher_surname') {
-      setTeacherSurname(value);
-    } else {
-      setFormData({
-        ...formData,
-        [name]: name === 'lesson_type_id' || name === 'week_type_id' 
-          ? parseInt(value) 
-          : value
-      });
-    }
+
+  // Handle field changes
+  const handleFieldChange = (value: any, { name }: { name: string }) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
-  
-  const handleSubmit = (e: React.FormEvent) => {
+
+  // Submit
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Update teacher info
-    const updatedLesson: Lesson = {
-      ...formData,
-      teacher: {
-        ...formData.teacher,
-        name: teacherName,
-        surname: teacherSurname
-      }
+
+    const groupId = Array.isArray(formData.group_id) ? formData.group_id[0] : formData.group_id;
+    const postData = {
+      faculty_id: scheduleData.faculty.faculty_id,
+      group_id: groupId,
+      day_id: Number(formData.day_id),
+      hour_id: Number(formData.hour_id),
+      week_type_id: Number(formData.week_type_id),
+      subject_id: Number(formData.subject_id),
+      lesson_type_id: Number(formData.lesson_type_id),
+      teacher_id: formData.teacher_id,
+      room_id: Number(formData.room_id),
     };
-    
-    if (modalData.mode === 'add' && modalData.groupId !== null && 
-        modalData.dayId !== null && modalData.hourId !== null) {
-      addLesson(modalData.groupId, modalData.dayId, modalData.hourId, updatedLesson);
-    } else if (modalData.mode === 'edit' && modalData.groupId !== null && 
-              modalData.dayId !== null && modalData.hourId !== null && 
-              modalData.lessonIndex !== null) {
-      editLesson(
-        modalData.groupId, 
-        modalData.dayId, 
-        modalData.hourId, 
-        modalData.lessonIndex, 
-        updatedLesson
-      );
+
+    try {
+      await post('/api/schedules', postData);
+      onClose();
+    } catch (err) {
+      alert('Xəta baş verdi!');
     }
-    
-    onClose();
   };
-  
+
   if (!isOpen) return null;
-  
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg h-[95vh] flex flex-col overflow-hidden">
+        {/* Header */}
         <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
           <h2 className="text-xl font-semibold text-gray-800">
             {modalData.mode === 'add' ? 'Dərs əlavə et' : 'Dərsi redaktə et'}
           </h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 transition-colors"
           >
             <X size={20} />
           </button>
         </div>
-        
-        <form onSubmit={handleSubmit} className="p-6">
+
+        {/* Form Content */}
+        <form id="form" onSubmit={handleSubmit} className="flex-1 p-6 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Qrup
-              </label>
-              <select 
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 cursor-not-allowed"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Qrup</label>
+              <GroupSelect
+                value={formData.group_id}
+                onChange={handleFieldChange}
+                name="group_id"
+                required
                 disabled
-              >
-                <option>
-                  {scheduleData.faculty.groups.find(g => g.group_id === modalData.groupId)?.group_name || ''}
-                </option>
-              </select>
+                options={mockScheduleData.groups.map(group => ({
+                  value: group.group_id,
+                  label: group.group_name,
+                }))}
+              />
             </div>
-            
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Gün
-              </label>
-              <select 
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 cursor-not-allowed"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Gün</label>
+              <DaySelect
+                value={formData.day_id}
+                onChange={handleFieldChange}
+                name="day_id"
+                required
                 disabled
-              >
-                <option>
-                  {modalData.dayId ? dayNames[modalData.dayId - 1] : ''}
-                </option>
-              </select>
+                options={dayNames.map((name, index) => ({
+                  value: index + 1,
+                  label: name,
+                }))}
+              />
             </div>
-            
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Saat
-              </label>
-              <select 
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 cursor-not-allowed"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Saat</label>
+              <VirtualSelect
+                value={formData.hour_id}
+                onChange={handleFieldChange}
+                name="hour_id"
+                options={mockScheduleData.hours.map(hour => ({
+                  value: hour.id,
+                  label: hour.time,
+                }))}
+                placeholder="Saat seçin"
+                required
                 disabled
-              >
-                <option>
-                  {scheduleData.hours.find(h => h.id === modalData.hourId)?.time || ''}
-                </option>
-              </select>
+                menuPortalTarget={document.body}
+                styles={{ menuPortal: (base: any) => ({ ...base, zIndex: 9999 }) }}
+              />
             </div>
-            
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fənn adı
-              </label>
-              <select 
-                name="subject_id"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fənn</label>
+              <DisciplineSelect
                 value={formData.subject_id}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={handleFieldChange}
+                name="subject_id"
                 required
-              >
-                <option value="">Fənn seçin</option>
-                {scheduleData.subjects.map(subject => (
-                  <option key={subject.subject_id} value={subject.subject_id}>
-                    {subject.subject_name}
-                  </option>
-                ))}
-              </select>
+                options={mockScheduleData.subjects.map(subject => ({
+                  value: subject.subject_id,
+                  label: subject.subject_name,
+                }))}
+              />
             </div>
-            
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Dərs tipi
-              </label>
-              <select 
-                name="lesson_type_id"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dərs tipi</label>
+              <VirtualSelect
                 value={formData.lesson_type_id}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={handleFieldChange}
+                name="lesson_type_id"
+                apiEndpoint="/api/lesson_types"
+                labelKey="lesson_type"
+                searchKeys={['lesson_type']}
+                placeholder="Dərs tipi seçin"
                 required
-              >
-                {scheduleData.lesson_types.map(type => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-              </select>
+                menuPortalTarget={document.body}
+                styles={{ menuPortal: (base: any) => ({ ...base, zIndex: 9999 }) }}
+              />
             </div>
-            
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Həftə tipi
-              </label>
-              <select 
-                name="week_type_id"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Həftə tipi</label>
+              <VirtualSelect
                 value={formData.week_type_id}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={handleFieldChange}
+                name="week_type_id"
+                apiEndpoint="/api/week_types"
+                labelKey="week_type"
+                searchKeys={['week_type']}
+                placeholder="Həftə tipi seçin"
                 required
-              >
-                {scheduleData.week_types.map(type => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Müəllim adı
-              </label>
-              <input 
-                type="text"
-                name="teacher_name"
-                value={teacherName}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
+                menuPortalTarget={document.body}
+                styles={{ menuPortal: (base: any) => ({ ...base, zIndex: 9999 }) }}
               />
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Müəllim soyadı
-              </label>
-              <input 
-                type="text"
-                name="teacher_surname"
-                value={teacherSurname}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            <div className="relative z-10">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Müəllim</label>
+              <ProfessorSelect
+                value={formData.teacher_id}
+                onChange={handleFieldChange}
+                name="teacher_id"
                 required
+                menuPortalTarget={document.body}
+                styles={{ menuPortal: (base: any) => ({ ...base, zIndex: 9999 }) }}
               />
             </div>
-            
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Otaq
-              </label>
-              <select 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Otaq</label>
+              <RoomSelect
+                value={formData.room_id}
+                onChange={handleFieldChange}
                 name="room_id"
-                value={formData.room.room_id}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
-              >
-                <option value="">Otaq seçin</option>
-                {scheduleData.rooms.map(room => (
-                  <option key={room.room_id} value={room.room_id}>
-                    {room.room_name}
-                  </option>
-                ))}
-              </select>
+                options={mockScheduleData.rooms.map(room => ({
+                  value: room.room_id,
+                  label: `${room.room_name} (${room.corp_name})`,
+                }))}
+                menuPortalTarget={document.body}
+                styles={{ menuPortal: (base: any) => ({ ...base, zIndex: 9999 }) }}
+              />
             </div>
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-            >
-              Ləğv et
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              {modalData.mode === 'add' ? 'Əlavə et' : 'Yadda saxla'}
-            </button>
           </div>
         </form>
+
+        {/* Buttons */}
+        <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3 relative z-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
+          >
+            Ləğv et
+          </button>
+          <button
+            type="submit"
+            form="form"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            {modalData.mode === 'add' ? 'Əlavə et' : 'Yadda saxla'}
+          </button>
+        </div>
       </div>
     </div>
   );

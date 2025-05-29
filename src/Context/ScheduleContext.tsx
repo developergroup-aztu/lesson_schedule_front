@@ -29,10 +29,7 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
       if (dayIndex === -1) {
         group.days.push({
           day_id: dayId,
-          hours: [{
-            hour_id: hourId,
-            lessons: [lesson]
-          }]
+          hours: [{ hour_id: hourId, lessons: [lesson] }],
         });
       } else {
         const day = group.days[dayIndex];
@@ -40,7 +37,7 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
         if (hourIndex === -1) {
           day.hours.push({
             hour_id: hourId,
-            lessons: [lesson]
+            lessons: [lesson],
           });
         } else {
           day.hours[hourIndex].lessons.push(lesson);
@@ -51,10 +48,10 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
   };
 
   const editLesson = (
-    groupId: number, 
-    dayId: number, 
-    hourId: number, 
-    lessonIndex: number, 
+    groupId: number,
+    dayId: number,
+    hourId: number,
+    lessonIndex: number,
     updatedLesson: Lesson
   ) => {
     setScheduleData(prevData => {
@@ -75,9 +72,9 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
   };
 
   const deleteLesson = (
-    groupId: number, 
-    dayId: number, 
-    hourId: number, 
+    groupId: number,
+    dayId: number,
+    hourId: number,
     lessonIndex: number
   ) => {
     setScheduleData(prevData => {
@@ -93,7 +90,6 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
       const hour = day.hours[hourIndex];
       if (lessonIndex < 0 || lessonIndex >= hour.lessons.length) return prevData;
       hour.lessons.splice(lessonIndex, 1);
-      // Remove empty containers
       if (hour.lessons.length === 0) {
         day.hours.splice(hourIndex, 1);
         if (day.hours.length === 0) {
@@ -105,9 +101,9 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
   };
 
   const toggleBlockStatus = (
-    groupId: number, 
-    dayId: number, 
-    hourId: number, 
+    groupId: number,
+    dayId: number,
+    hourId: number,
     lessonIndex: number
   ) => {
     setScheduleData(prevData => {
@@ -133,12 +129,8 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     addLesson,
     editLesson,
     deleteLesson,
-    toggleBlockStatus
+    toggleBlockStatus,
   };
 
-  return (
-    <ScheduleContext.Provider value={value}>
-      {children}
-    </ScheduleContext.Provider>
-  );
+  return <ScheduleContext.Provider value={value}>{children}</ScheduleContext.Provider>;
 };

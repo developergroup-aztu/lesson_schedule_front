@@ -6,21 +6,21 @@ import { dayNames } from '../../data/mockData';
 
 interface ScheduleTableProps {
   onAddLesson: (groupId: number, dayId: number, hourId: number, weekTypeId: number) => void;
-onOpenContextMenu: (
-  e: React.MouseEvent,
-  groupId: number,
-  dayId: number,
-  hourId: number,
-  lessonIndex: number,
-  weekTypeId: number
-) => void;
-  onEditLesson: (groupId: number, dayId: number, hourId: number, lessonIndex: number) => void;
+  onOpenContextMenu: (
+    e: React.MouseEvent,
+    groupId: number,
+    dayId: number,
+    hourId: number,
+    lessonIndex: number,
+    weekTypeId: number
+  ) => void;
+  onEditLesson: (groupId: number, dayId: number, hourId: number, lessonIndex: number, weekTypeId: number) => void;
 }
 
-const ScheduleTable: React.FC<ScheduleTableProps> = ({ 
-  onAddLesson, 
+const ScheduleTable: React.FC<ScheduleTableProps> = ({
+  onAddLesson,
   onOpenContextMenu,
-  onEditLesson
+  onEditLesson,
 }) => {
   const { scheduleData } = useSchedule();
   const { faculty, hours } = scheduleData;
@@ -53,10 +53,10 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
 
               {Array.from({ length: 5 }).map((_, dayIndex) => {
                 const dayId = dayIndex + 1;
-                
+
                 return shiftHours.map(hour => {
                   const hourLessons = findLessons(group.group_id, dayId, hour.id);
-                  
+
                   return (
                     <ScheduleCell
                       key={`${group.group_id}-${dayId}-${hour.id}`}
@@ -79,12 +79,12 @@ const ScheduleTable: React.FC<ScheduleTableProps> = ({
   );
 
   return (
-    <div className="space-y-8 ">
-      <div className='pl-2'>
+    <div className="space-y-8">
+      <div className="pl-2">
         <h3 className="text-lg font-semibold mb-4">Səhər növbəsi</h3>
         {renderShift(morningHours)}
       </div>
-      <div className='pl-2'>
+      <div className="pl-2">
         <h3 className="text-lg font-semibold mb-4">Günorta növbəsi</h3>
         {renderShift(afternoonHours)}
       </div>

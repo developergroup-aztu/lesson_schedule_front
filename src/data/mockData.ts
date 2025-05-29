@@ -1,3 +1,5 @@
+import { group } from "console";
+
 export const dayNames = [
   "Bazar ertəsi",
   "Çərşənbə axşamı", 
@@ -456,7 +458,13 @@ export const mockScheduleData: ScheduleData = {
       }
     ]
   },
-  hours: [
+
+  groups : [
+    { group_id: 1, group_name: "688a3" },
+    { group_id: 2, group_name: "688b1" },
+    { group_id: 3, group_name: "685a2" }
+  ],
+ hours: [
     { id: 1, name: "09:00-10:20", time: "09:00-10:20", status: 1 },
     { id: 2, name: "10:30-11:50", time: "10:30-11:50", status: 1 },
     { id: 3, name: "12:00-13:20", time: "12:00-13:20", status: 1 },
