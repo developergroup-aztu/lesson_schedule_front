@@ -34,6 +34,8 @@ import Rooms from './pages/Room/Rooms';
 // Schedule Pages
 import Schedule from './pages/Schedule/Schedule';
 import AddScheduleLesson from './pages/Schedule/AddScheduleLesson';
+import FacultiesSchedule from './pages/Schedule/FacultiesSchedule';
+import ViewFacultySchedule from './pages/Schedule/ViewFacultySchedule';
 
 function App() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -160,6 +162,22 @@ function App() {
                       element={
                         <ProtectedRoute requiredPermission="add_schedule">
                           <AddScheduleLesson />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/faculties"
+                      element={
+                        <ProtectedRoute requiredPermission="view_faculties">
+                          <FacultiesSchedule />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/faculty/:id/schedule"
+                      element={
+                        <ProtectedRoute requiredPermission="view_faculty_schedule">
+                          <ViewFacultySchedule />
                         </ProtectedRoute>
                       }
                     />

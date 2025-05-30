@@ -50,7 +50,7 @@ const EditRole: React.FC = () => {
         name: name,
         permission_ids: selectedPermissions,
       });
-      navigate('/role');
+      navigate('/roles');
     } catch (err: any) {
       console.error('Error updating role:', err);
       setError(err.response?.data?.message || 'An error occurred');

@@ -33,6 +33,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     email: string;
     roles: string[];
     permissions: string[];
+    faculty_id: number;
   } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,6 +46,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         email: profileData.data.userData.email,
         roles: profileData.data.userData.roles,
         permissions: profileData.data.userData.permissions,
+        faculty_id: profileData.data.userData.faculty_id,
       });
       setIsAuthenticated(true);
     } catch (error) {

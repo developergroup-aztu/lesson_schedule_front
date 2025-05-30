@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useSchedule } from '../context/ScheduleContext';
+import { useAuth } from '../Context/AuthContext';
 import { Lesson, ModalData } from '../types/Schedule';
 import { dayNames, mockScheduleData } from '../data/mockData';
 import {
@@ -17,10 +18,21 @@ interface LessonModalProps {
   isOpen: boolean;
   onClose: () => void;
   modalData: ModalData;
+  mode?: 'cell' | 'header'; // əlavə prop
 }
 
-const LessonModal: React.FC<LessonModalProps> = ({ isOpen, onClose, modalData }) => {
-  const { scheduleData, addLesson, editLesson } = useSchedule();
+const LessonModal: React.FC<LessonModalProps> = ({
+  isOpen,
+  onClose,
+  modalData,
+  mode = 'cell', // default: cell
+}) => {
+  const { scheduleData } = useSchedule();
+  const { user } = useAuth();
+
+  // FacultyAdmin üçün faculty_id və adı
+  const facultyId = user?.faculty_id || scheduleData.faculty?.faculty_id;
+  const facultyName = user?.faculty_name || scheduleData.faculty?.faculty_name;
 
   // Form state
   const [formData, setFormData] = useState<any>({
@@ -74,17 +86,21 @@ const LessonModal: React.FC<LessonModalProps> = ({ isOpen, onClose, modalData })
     e.preventDefault();
 
     const groupId = Array.isArray(formData.group_id) ? formData.group_id[0] : formData.group_id;
-    const postData = {
-      faculty_id: scheduleData.faculty.faculty_id,
-      group_id: groupId,
-      day_id: Number(formData.day_id),
-      hour_id: Number(formData.hour_id),
-      week_type_id: Number(formData.week_type_id),
+    const postData: any = {
+      faculty_id: facultyId,
       subject_id: Number(formData.subject_id),
       lesson_type_id: Number(formData.lesson_type_id),
+      week_type_id: Number(formData.week_type_id),
       teacher_id: formData.teacher_id,
       room_id: Number(formData.room_id),
     };
+
+    // Əgər cell-dən açılıbsa, group, day, hour əlavə et
+    if (mode === 'cell') {
+      postData.group_id = groupId;
+      postData.day_id = Number(formData.day_id);
+      postData.hour_id = Number(formData.hour_id);
+    }
 
     try {
       await post('/api/schedules', postData);
@@ -115,51 +131,66 @@ const LessonModal: React.FC<LessonModalProps> = ({ isOpen, onClose, modalData })
         {/* Form Content */}
         <form id="form" onSubmit={handleSubmit} className="flex-1 p-6 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Qrup</label>
-              <GroupSelect
-                value={formData.group_id}
-                onChange={handleFieldChange}
-                name="group_id"
-                required
-                disabled
-                options={mockScheduleData.groups.map(group => ({
-                  value: group.group_id,
-                  label: group.group_name,
-                }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Gün</label>
-              <DaySelect
-                value={formData.day_id}
-                onChange={handleFieldChange}
-                name="day_id"
-                required
-                disabled
-                options={dayNames.map((name, index) => ({
-                  value: index + 1,
-                  label: name,
-                }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Saat</label>
-              <VirtualSelect
-                value={formData.hour_id}
-                onChange={handleFieldChange}
-                name="hour_id"
-                options={mockScheduleData.hours.map(hour => ({
-                  value: hour.id,
-                  label: hour.time,
-                }))}
-                placeholder="Saat seçin"
-                required
-                disabled
-                menuPortalTarget={document.body}
-                styles={{ menuPortal: (base: any) => ({ ...base, zIndex: 9999 }) }}
-              />
-            </div>
+            {mode === 'cell' && (
+              <>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Qrup</label>
+                  <GroupSelect
+                    value={formData.group_id}
+                    onChange={handleFieldChange}
+                    name="group_id"
+                    required
+                    disabled
+                    options={mockScheduleData.groups.map(group => ({
+                      value: group.group_id,
+                      label: group.group_name,
+                    }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Gün</label>
+                  <DaySelect
+                    value={formData.day_id}
+                    onChange={handleFieldChange}
+                    name="day_id"
+                    required
+                    disabled
+                    options={dayNames.map((name, index) => ({
+                      value: index + 1,
+                      label: name,
+                    }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Saat</label>
+                  <VirtualSelect
+                    value={formData.hour_id}
+                    onChange={handleFieldChange}
+                    name="hour_id"
+                    options={mockScheduleData.hours.map(hour => ({
+                      value: hour.id,
+                      label: hour.time,
+                    }))}
+                    placeholder="Saat seçin"
+                    required
+                    disabled
+                  />
+                </div>
+              </>
+            )}
+
+            {mode === 'header' && (
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fakültə</label>
+                <input
+                  type="text"
+                  value={facultyName || ''}
+                  disabled
+                  className="w-full px-3 py-2 border rounded bg-gray-100"
+                />
+              </div>
+            )}
+
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Fənn</label>
               <DisciplineSelect

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { ScheduleData, ScheduleContextType, Lesson } from '../types';
 import { mockScheduleData } from '../data/mockData';
+import { useAuth } from './AuthContext';
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);
 

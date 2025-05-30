@@ -117,12 +117,12 @@ function Schedule() {
           </div>
         </main>
 
-        <LessonModal
-          isOpen={modalData.isOpen}
-          onClose={handleCloseModal}
-          modalData={modalData}
-        />
-
+<LessonModal
+  isOpen={modalData.isOpen}
+  onClose={handleCloseModal}
+  modalData={modalData}
+  mode={modalData.mode === 'add' && modalData.groupId == null ? 'header' : 'cell'} // Əlavə et
+/>
         <ContextMenu
           isOpen={contextMenu.isOpen}
           position={contextMenu.position}
