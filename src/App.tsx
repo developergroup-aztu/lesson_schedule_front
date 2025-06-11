@@ -37,6 +37,8 @@ import AddScheduleLesson from './pages/Schedule/AddScheduleLesson';
 import FacultiesSchedule from './pages/Schedule/FacultiesSchedule';
 import ViewFacultySchedule from './pages/Schedule/ViewFacultySchedule';
 
+import { ScheduleProvider } from './Context/ScheduleContext';
+
 function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const { pathname } = useLocation();
@@ -153,7 +155,9 @@ function App() {
                       path="schedules"
                       element={
                         <ProtectedRoute requiredPermission="view_schedules">
-                          <Schedule />
+                          <ScheduleProvider>
+                            <Schedule />
+                          </ScheduleProvider>
                         </ProtectedRoute>
                       }
                     />
@@ -177,7 +181,9 @@ function App() {
                       path="/faculty/:id/schedule"
                       element={
                         <ProtectedRoute requiredPermission="view_faculty_schedule">
-                          <ViewFacultySchedule />
+                          <ScheduleProvider>
+                            <Schedule />
+                          </ScheduleProvider>
                         </ProtectedRoute>
                       }
                     />

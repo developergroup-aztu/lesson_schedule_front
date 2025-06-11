@@ -1,7 +1,9 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { ScheduleData, ScheduleContextType, Lesson } from '../types';
-import { mockScheduleData } from '../data/mockData';
 import { useAuth } from './AuthContext';
+import { get, post, del } from '../api/service'; // del əlavə olundu
+import { useParams } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);
 
@@ -18,31 +20,64 @@ interface ScheduleProviderProps {
 }
 
 export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) => {
-  const [scheduleData, setScheduleData] = useState<ScheduleData>(mockScheduleData);
+  const { user } = useAuth();
+  const params = useParams();
+  const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Schedules-i endpointdən al (refresh üçün ayrıca funksiya)
+  const fetchSchedule = useCallback(async () => {
+    let facultyId: number | undefined;
+
+    if (
+      (user?.roles.includes("admin") || user?.roles.includes("SuperAdmin"))
+    ){
+      facultyId = params.id
+    }
+    else{
+      facultyId = user?.faculty_id;
+    }
+
+    if (!facultyId) return;
+    setLoading(true);
+    try {
+      const response = await get(`/api/schedules/${facultyId}`);
+      setScheduleData(response.data);
+    } catch (error) {
+      setScheduleData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.faculty_id, user?.role, params.facultyId]);
+
+  useEffect(() => {
+    fetchSchedule();
+  }, [fetchSchedule]);
+
+  if (loading || !scheduleData) {
+    return <div>Yüklənir...</div>;
+  }
 
   const addLesson = (groupId: number, dayId: number, hourId: number, lesson: Lesson) => {
     setScheduleData(prevData => {
+      if (!prevData) return prevData;
       const newData = { ...prevData };
-      const groupIndex = newData.faculty.groups.findIndex(g => g.group_id === groupId);
+      const groupIndex = newData.groups.findIndex(g => g.group_id === groupId);
       if (groupIndex === -1) return prevData;
-      const group = newData.faculty.groups[groupIndex];
-      const dayIndex = group.days.findIndex(d => d.day_id === dayId);
-      if (dayIndex === -1) {
-        group.days.push({
-          day_id: dayId,
-          hours: [{ hour_id: hourId, lessons: [lesson] }],
+      const group = newData.groups[groupIndex];
+      if (!group.days[dayId]) {
+        group.days[dayId] = { hours: [] };
+      }
+      const day = group.days[dayId];
+      const hourIndex = day.hours.findIndex(h => h.hour_id === hourId);
+      if (hourIndex === -1) {
+        day.hours.push({
+          hour_id: hourId,
+          hour_name: '',
+          lessons: [lesson],
         });
       } else {
-        const day = group.days[dayIndex];
-        const hourIndex = day.hours.findIndex(h => h.hour_id === hourId);
-        if (hourIndex === -1) {
-          day.hours.push({
-            hour_id: hourId,
-            lessons: [lesson],
-          });
-        } else {
-          day.hours[hourIndex].lessons.push(lesson);
-        }
+        day.hours[hourIndex].lessons.push(lesson);
       }
       return newData;
     });
@@ -56,13 +91,13 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     updatedLesson: Lesson
   ) => {
     setScheduleData(prevData => {
+      if (!prevData) return prevData;
       const newData = { ...prevData };
-      const groupIndex = newData.faculty.groups.findIndex(g => g.group_id === groupId);
+      const groupIndex = newData.groups.findIndex(g => g.group_id === groupId);
       if (groupIndex === -1) return prevData;
-      const group = newData.faculty.groups[groupIndex];
-      const dayIndex = group.days.findIndex(d => d.day_id === dayId);
-      if (dayIndex === -1) return prevData;
-      const day = group.days[dayIndex];
+      const group = newData.groups[groupIndex];
+      if (!group.days[dayId]) return prevData;
+      const day = group.days[dayId];
       const hourIndex = day.hours.findIndex(h => h.hour_id === hourId);
       if (hourIndex === -1) return prevData;
       const hour = day.hours[hourIndex];
@@ -72,56 +107,97 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     });
   };
 
-  const deleteLesson = (
-    groupId: number,
-    dayId: number,
-    hourId: number,
-    lessonIndex: number
-  ) => {
-    setScheduleData(prevData => {
-      const newData = { ...prevData };
-      const groupIndex = newData.faculty.groups.findIndex(g => g.group_id === groupId);
-      if (groupIndex === -1) return prevData;
-      const group = newData.faculty.groups[groupIndex];
-      const dayIndex = group.days.findIndex(d => d.day_id === dayId);
-      if (dayIndex === -1) return prevData;
-      const day = group.days[dayIndex];
-      const hourIndex = day.hours.findIndex(h => h.hour_id === hourId);
-      if (hourIndex === -1) return prevData;
-      const hour = day.hours[hourIndex];
-      if (lessonIndex < 0 || lessonIndex >= hour.lessons.length) return prevData;
-      hour.lessons.splice(lessonIndex, 1);
-      if (hour.lessons.length === 0) {
-        day.hours.splice(hourIndex, 1);
-        if (day.hours.length === 0) {
-          group.days.splice(dayIndex, 1);
-        }
+  // Yeni: Dərsi backend-dən sil
+const deleteLesson = async (
+  groupId: number,
+  dayId: number,
+  hourId: number,
+  lessonIndex: number
+) => {
+  let schedule_group_id: number | undefined;
+  let deleted = false;
+  setScheduleData(prevData => {
+    if (!prevData) return prevData;
+    const newData = { ...prevData };
+    const groupIndex = newData.groups.findIndex(g => g.group_id === groupId);
+    if (groupIndex === -1) return prevData;
+    const group = newData.groups[groupIndex];
+    if (!group.days[dayId]) return prevData;
+    const day = group.days[dayId];
+    const hourIndex = day.hours.findIndex(h => h.hour_id === hourId);
+    if (hourIndex === -1) return prevData;
+    const hour = day.hours[hourIndex];
+    if (lessonIndex < 0 || lessonIndex >= hour.lessons.length) return prevData;
+    // schedule_group_id-ni tap
+    schedule_group_id = hour.lessons[lessonIndex]?.schedule_group_id;
+    hour.lessons.splice(lessonIndex, 1);
+    if (hour.lessons.length === 0) {
+      day.hours.splice(hourIndex, 1);
+      if (day.hours.length === 0) {
+        delete group.days[dayId];
       }
-      return newData;
-    });
-  };
-
-  const toggleBlockStatus = (
-    groupId: number,
-    dayId: number,
-    hourId: number,
-    lessonIndex: number
+    }
+    deleted = true;
+    return newData;
+  });
+  // Backend silmə çağırışı və SweetAlert
+  if (schedule_group_id && deleted) {
+    try {
+      const res = await del(`/api/schedules/${schedule_group_id}`);
+      if (res?.message || res?.data?.message) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Uğurlu',
+          text: res.message || res.data.message,
+          confirmButtonColor: '#2563eb',
+        });
+      }
+    } catch (error: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Xəta',
+        text: error?.response?.data?.message || 'Silinmə zamanı xəta baş verdi.',
+        confirmButtonColor: '#2563eb',
+      });
+      fetchSchedule();
+    }
+  }
+};
+  const toggleBlockStatus = async (
+    schedule_id: number,
+    schedule_group_id: number,
+    lock_id: 0 | 1
   ) => {
-    setScheduleData(prevData => {
-      const newData = { ...prevData };
-      const groupIndex = newData.faculty.groups.findIndex(g => g.group_id === groupId);
-      if (groupIndex === -1) return prevData;
-      const group = newData.faculty.groups[groupIndex];
-      const dayIndex = group.days.findIndex(d => d.day_id === dayId);
-      if (dayIndex === -1) return prevData;
-      const day = group.days[dayIndex];
-      const hourIndex = day.hours.findIndex(h => h.hour_id === hourId);
-      if (hourIndex === -1) return prevData;
-      const hour = day.hours[hourIndex];
-      if (lessonIndex < 0 || lessonIndex >= hour.lessons.length) return prevData;
-      hour.lessons[lessonIndex].blocked = !hour.lessons[lessonIndex].blocked;
-      return newData;
-    });
+    try {
+      await post('/api/schedules/lock', {
+        schedule_id,
+        schedule_group_id,
+        lock_id,
+      });
+
+      setScheduleData(prevData => {
+        if (!prevData) return prevData;
+        const newData = { ...prevData };
+        for (const group of newData.groups) {
+          for (const dayKey in group.days) {
+            const day = group.days[dayKey];
+            for (const hour of day.hours) {
+              for (const lesson of hour.lessons) {
+                if (
+                  lesson.schedule_id === schedule_id &&
+                  lesson.schedule_group_id === schedule_group_id
+                ) {
+                  lesson.lock_id = lock_id;
+                }
+              }
+            }
+          }
+        }
+        return newData;
+      });
+    } catch (error) {
+      console.error('Kilitləmə xətası:', error);
+    }
   };
 
   const value: ScheduleContextType = {
@@ -131,6 +207,7 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     editLesson,
     deleteLesson,
     toggleBlockStatus,
+    refreshSchedule: fetchSchedule,
   };
 
   return <ScheduleContext.Provider value={value}>{children}</ScheduleContext.Provider>;

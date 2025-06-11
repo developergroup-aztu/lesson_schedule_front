@@ -15,6 +15,7 @@ import { post, get } from '../../api/service';
 interface HeaderLessonModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void; // əlavə et
 }
 
 interface Group {
@@ -25,6 +26,7 @@ interface Group {
 const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
   isOpen,
   onClose,
+  onSuccess, // əlavə et
 }) => {
   const { user } = useAuth();
   const facultyId = user?.faculty_id;
@@ -36,18 +38,17 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
   // Form state
   const [formData, setFormData] = useState({
     faculty_id: facultyId || '',
-    group_ids: [] as number[], // Dəyişiklik: array olaraq saxla
+    group_ids: [] as number[],
     day_id: '',
     hour_id: '',
     subject_id: '',
     lesson_type_id: '',
     week_type_id: '',
-    teacher_id: '',
+    teacher_code: '',
     room_id: '',
   });
 
   const [hours, setHours] = useState<{ id: number; time: string }[]>([]);
-
 
   // Fetch groups from API
   const fetchGroups = async () => {
@@ -73,16 +74,16 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
   }, [facultyId]);
 
   useEffect(() => {
-  const fetchHours = async () => {
-    try {
-      const response = await get('/api/hours');
-      setHours(response.data || []);
-    } catch (error) {
-      setHours([]);
-    }
-  };
-  fetchHours();
-}, []);
+    const fetchHours = async () => {
+      try {
+        const response = await get('/api/hours');
+        setHours(response.data || []);
+      } catch (error) {
+        setHours([]);
+      }
+    };
+    fetchHours();
+  }, []);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -95,7 +96,7 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
         subject_id: '',
         lesson_type_id: '',
         week_type_id: '',
-        teacher_id: '',
+        teacher_code: '',
         room_id: '',
       });
     }
@@ -127,17 +128,18 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
     try {
       const postData = {
         faculty_id: facultyId,
-        group_ids: formData.group_ids, // array olaraq göndər
+        group_ids: formData.group_ids,
         day_id: Number(formData.day_id),
         hour_id: Number(formData.hour_id),
         week_type_id: Number(formData.week_type_id),
         subject_id: Number(formData.subject_id),
         lesson_type_id: Number(formData.lesson_type_id),
-        teacher_id: formData.teacher_id,
+        teacher_code: formData.teacher_code,
         room_id: Number(formData.room_id),
       };
       await post('/api/schedules', postData);
       onClose();
+      if (onSuccess) onSuccess(); // əlavə et
     } catch (error) {
       console.error('Error creating schedule:', error);
       alert('Xəta baş verdi! Yenidən cəhd edin.');
@@ -180,7 +182,7 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
                 onChange={handleFieldChange}
                 name="group_ids"
                 required
-                isMulti // Dəyişiklik: birdən çox seçim üçün
+                isMulti
                 options={groups.map((group) => ({
                   value: group.id,
                   label: group.name,
@@ -212,21 +214,21 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Saat
               </label>
-<VirtualSelect
-  value={formData.hour_id}
-  onChange={handleFieldChange}
-  name="hour_id"
-  options={hours.map((hour) => ({
-    value: hour.id,
-    label: hour.time,
-  }))}
-  placeholder="Saat seçin"
-  required
-  menuPortalTarget={document.body}
-  styles={{
-    menuPortal: (base: any) => ({ ...base, zIndex: 9999 }),
-  }}
-/>
+              <VirtualSelect
+                value={formData.hour_id}
+                onChange={handleFieldChange}
+                name="hour_id"
+                options={hours.map((hour) => ({
+                  value: hour.id,
+                  label: hour.time,
+                }))}
+                placeholder="Saat seçin"
+                required
+                menuPortalTarget={document.body}
+                styles={{
+                  menuPortal: (base: any) => ({ ...base, zIndex: 9999 }),
+                }}
+              />
             </div>
 
             {/* Subject Selection */}
@@ -294,9 +296,9 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
                 Müəllim
               </label>
               <ProfessorSelect
-                value={formData.teacher_id}
+                value={formData.teacher_code}
                 onChange={handleFieldChange}
-                name="teacher_id"
+                name="teacher_code"
                 required
                 menuPortalTarget={document.body}
                 styles={{

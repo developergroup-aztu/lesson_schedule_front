@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Edit, Trash, Lock, Unlock } from 'lucide-react';
 import { useSchedule } from '../context/ScheduleContext';
+import Swal from 'sweetalert2';
 
 interface ContextMenuProps {
   isOpen: boolean;
@@ -28,22 +29,31 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   const { deleteLesson, toggleBlockStatus, scheduleData } = useSchedule();
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Find the current lesson to determine if it's blocked
-  const isLessonBlocked = (): boolean => {
-    if (groupId === null || dayId === null || hourId === null || lessonIndex === null) {
-      return false;
+  // Cari dərsi tapmaq üçün funksiya
+  const getCurrentLesson = () => {
+    if (
+      !scheduleData ||
+      !scheduleData.groups ||
+      groupId === null ||
+      dayId === null ||
+      hourId === null ||
+      lessonIndex === null
+    ) {
+      return null;
     }
-
-    const group = scheduleData.faculty.groups.find(g => g.group_id === groupId);
-    if (!group) return false;
-
-    const day = group.days.find(d => d.day_id === dayId);
-    if (!day) return false;
-
+    const group = scheduleData.groups.find(g => g.group_id === groupId);
+    if (!group) return null;
+    const day = group.days[dayId];
+    if (!day) return null;
     const hour = day.hours.find(h => h.hour_id === hourId);
-    if (!hour || !hour.lessons[lessonIndex]) return false;
+    if (!hour || !hour.lessons[lessonIndex]) return null;
+    return hour.lessons[lessonIndex];
+  };
 
-    return hour.lessons[lessonIndex].blocked;
+  // Dərsin kilidli olub olmadığını yoxla
+  const isLessonBlocked = (): boolean => {
+    const lesson = getCurrentLesson();
+    return lesson ? lesson.lock_id === 1 : false;
   };
 
   useEffect(() => {
@@ -56,7 +66,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
@@ -69,16 +78,32 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     onClose();
   };
 
-  const handleDelete = () => {
-    if (groupId !== null && dayId !== null && hourId !== null && lessonIndex !== null) {
-      deleteLesson(groupId, dayId, hourId, lessonIndex);
-    }
+const handleDelete = async () => {
+  const result = await Swal.fire({
+    title: 'Əminsiniz?',
+    text: 'Bu dərsi silmək istədiyinizə əminsiniz?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Bəli, sil',
+    cancelButtonText: 'Ləğv et',
+  });
+  if (result.isConfirmed) {
+    // Burada deleteLesson çağır
+    await deleteLesson(groupId, dayId, hourId, lessonIndex);
     onClose();
-  };
+  }
+};
 
   const handleToggleBlock = () => {
-    if (groupId !== null && dayId !== null && hourId !== null && lessonIndex !== null) {
-      toggleBlockStatus(groupId, dayId, hourId, lessonIndex);
+    const lesson = getCurrentLesson();
+    if (lesson) {
+      toggleBlockStatus(
+        lesson.schedule_id,
+        lesson.schedule_group_id,
+        lesson.lock_id === 1 ? 0 : 1 // yeni status
+      );
     }
     onClose();
   };

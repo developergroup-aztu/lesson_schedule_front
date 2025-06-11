@@ -1,16 +1,23 @@
 import { Menu, Printer } from 'lucide-react';
 import { useState } from 'react';
-import { useSchedule } from '../Context/ScheduleContext';
-import HeaderLessonModal from './ScheduleTable/ModalAddLesson';
+import { useAuth } from '../Context/AuthContext';
+import { useSchedule } from '../context/ScheduleContext';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  onAddLesson: () => void; // This prop is crucial
+}
+
+const Header: React.FC<HeaderProps> = ({ onAddLesson }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const { scheduleData } = useSchedule();
-  const facultyName = scheduleData.faculty.faculty_name;
+  // const [modalOpen, setModalOpen] = useState(false); // This state is indeed not needed here
+  // const { scheduleData } = useSchedule(); // Not needed for printing, as you use DOM selector
+
+  const { user } = useAuth();
+  const facultyName = user?.faculty_name || useSchedule().scheduleData?.faculty_name || 'Fakültə'; // Fallback to 'Fakültə' if no faculty name is available
+
 
   const handlePrint = () => {
-    const printContent = document.querySelector('.space-y-8');
+    const printContent = document.querySelector('.space-y-12'); // Corrected selector based on ScheduleTable. The outer div with pt-4 space-y-12 includes both morning and afternoon shifts.
     if (printContent) {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
@@ -48,40 +55,59 @@ const Header: React.FC = () => {
 
   return (
     <>
-      <header className="bg-indigo-50 text-gray-900 py-3 px-4 sm:px-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 rounded-b-lg print:bg-white print:text-black print:shadow-none print:border-b print:border-gray-300">
-        <div className="flex items-center justify-between w-full sm:w-auto">
-          <h1 className="text-lg sm:text-xl font-semibold tracking-wide truncate sm:truncate">
-            {facultyName} Fakültəsi
+      <header className="relative z-20 pb-4 px-8 pt-6">
+        <div className="flex items-center justify-between">
+          <h1 className="md:text-xl text-md font-extrabold text-blue-800 tracking-tight">
+            {facultyName} Fakültəsi Cədvəli
           </h1>
-          <button
-            className="sm:hidden flex items-center justify-center p-2"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onAddLesson} // This calls the prop function
+              className="hidden sm:flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-500 text-white font-semibold shadow-md hover:from-blue-400 hover:to-blue-600 transition-all duration-300 transform hover:-translate-y-0.5"
+            >
+              <span className="text-lg">+</span> Dərs əlavə et
+            </button>
+            <button
+              onClick={handlePrint}
+              className="hidden sm:flex items-center gap-2 px-5 py-2 rounded-xl bg-white/40 border border-blue-200 text-blue-800 font-semibold shadow-md backdrop-blur-sm hover:bg-white/60 transition-all duration-300 transform hover:-translate-y-0.5"
+            >
+              <Printer className="w-5 h-5" /> Çap et
+            </button>
+            <button
+              className="sm:hidden flex items-center justify-center p-3 rounded-xl bg-white/40 border border-blue-200 text-blue-800 backdrop-blur-sm"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
         </div>
-        <div
-          className={`flex flex-col sm:flex-row flex-wrap gap-2 justify-center sm:justify-end w-full sm:w-auto ${
-            isMenuOpen ? 'flex' : 'hidden sm:flex'
-          }`}
-        >
-          <button
-            onClick={() => setModalOpen(true)}
-            className="bg-indigo-500 hover:bg-indigo-600 text-white font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm transition-colors duration-200 flex items-center shrink-0 print:hidden"
-          >
-            <span className="mr-1">+</span>
-            <span>Dərs əlavə et</span>
-          </button>
-          <button
-            onClick={handlePrint}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm flex items-center transition-colors duration-200 shrink-0 print:hidden"
-          >
-            <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
-            <span>Çap et</span>
-          </button>
-        </div>
+
+        {/* Mobile Menu Overlay */}
+        {isMenuOpen && (
+          <div className="absolute  right-8 mt-2 w-48 bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-blue-200 sm:hidden z-30">
+            <div className="flex flex-col p-2">
+              <button
+                onClick={() => {
+                  onAddLesson(); // This also calls the prop function
+                  setIsMenuOpen(false);
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-slate-700 font-medium rounded-lg hover:bg-blue-50 transition-colors duration-200"
+              >
+                <span className="text-md">+</span> Dərs əlavə et
+              </button>
+              <button
+                onClick={() => {
+                  handlePrint();
+                  setIsMenuOpen(false);
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-slate-700 font-medium rounded-lg hover:bg-blue-50 transition-colors duration-200"
+              >
+                <Printer className="w-4 h-4" /> Çap et
+              </button>
+            </div>
+          </div>
+        )}
       </header>
-      <HeaderLessonModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
     </>
   );
 };

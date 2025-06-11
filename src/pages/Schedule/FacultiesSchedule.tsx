@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { get } from '../../api/service';
 import { useNavigate } from 'react-router-dom';
 import { PiEyeLight } from 'react-icons/pi';
+import { ClipLoader } from 'react-spinners';
 
 interface Department {
   faculty_code: string;
@@ -26,15 +27,27 @@ const FacultyList: React.FC = () => {
       try {
         setLoading(true);
         const res = await get('/api/faculties');
-        setFaculties(res.data || []);
+        setFaculties(Array.isArray(res.data) ? res.data : []);
       } catch (err: any) {
         setError('Fakültələr yüklənmədi');
+        setFaculties([]);
       } finally {
         setLoading(false);
       }
     };
     fetchFaculties();
   }, []);
+
+  if (loading) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-6">Fakültələr</h1>
+        <div className="flex justify-center items-center h-[60vh]">
+          <ClipLoader size={50} color={'#123abc'} loading={loading} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="">
@@ -50,19 +63,16 @@ const FacultyList: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
+            {error ? (
               <tr>
-                <td colSpan={5} className="text-center py-8 text-gray-500">Yüklənir...</td>
+                <td colSpan={4} className="text-center py-8 text-red-500">{error}</td>
               </tr>
-            ) : error ? (
+            ) : Array.isArray(faculties) && faculties.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-8 text-red-500">{error}</td>
-              </tr>
-            ) : faculties.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-8 text-gray-500">Fakültə tapılmadı</td>
+                <td colSpan={4} className="text-center py-8 text-gray-500">Fakültə tapılmadı</td>
               </tr>
             ) : (
+              Array.isArray(faculties) &&
               faculties.map((faculty, idx) => (
                 <tr key={faculty.id} className="hover:bg-gray-50 transition">
                   <td className="py-2 px-4 border-b">{idx + 1}</td>
@@ -88,3 +98,5 @@ const FacultyList: React.FC = () => {
 };
 
 export default FacultyList;
+
+
