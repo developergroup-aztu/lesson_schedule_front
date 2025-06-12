@@ -74,6 +74,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   if (!isOpen) return null;
 
   const handleEdit = () => {
+      console.log('Redakte et kliklendi!');
+
     onEdit();
     onClose();
   };

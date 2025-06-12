@@ -35,7 +35,7 @@ import Rooms from './pages/Room/Rooms';
 import Schedule from './pages/Schedule/Schedule';
 import AddScheduleLesson from './pages/Schedule/AddScheduleLesson';
 import FacultiesSchedule from './pages/Schedule/FacultiesSchedule';
-import ViewFacultySchedule from './pages/Schedule/ViewFacultySchedule';
+import RoomSchedule from './pages/Room/RoomSchedule';
 
 import { ScheduleProvider } from './Context/ScheduleContext';
 
@@ -148,6 +148,14 @@ function App() {
                       element={
                         <ProtectedRoute requiredPermission="view_rooms">
                           <Rooms />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/room/:id/schedule"
+                      element={
+                        <ProtectedRoute requiredPermission="view_room_schedule">
+                            <RoomSchedule />
                         </ProtectedRoute>
                       }
                     />

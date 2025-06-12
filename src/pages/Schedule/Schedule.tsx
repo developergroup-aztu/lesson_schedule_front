@@ -4,22 +4,20 @@ import ScheduleTable from '../../components/ScheduleTable/ScheduleTable';
 import LessonModal from '../../components/LessonModal';
 import ContextMenu from '../../components/ContextMenu';
 import { useSchedule } from '../../Context/ScheduleContext';
-import { Calendar, BookOpen, Users, Clock } from 'lucide-react';
+import {
+  Calendar,
+  BookOpen,
+  Users,
+  Clock,
+  TrendingUp,
+  TrendingDown,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 function Schedule() {
   const { scheduleData, refreshSchedule } = useSchedule();
 
-  const [modalData, setModalData] = useState<{
-    isOpen: boolean;
-    groupId: number | null;
-    dayId: number | null;
-    hourId: number | null;
-    lessonIndex: number | null;
-    lesson: any | null; // Consider defining a proper type for lesson if possible
-    mode: 'add' | 'edit';
-    weekTypeId?: number | null; // Added weekTypeId for consistency
-  }>({
+  const [modalData, setModalData] = useState({
     isOpen: false,
     groupId: null,
     dayId: null,
@@ -27,33 +25,59 @@ function Schedule() {
     lessonIndex: null,
     lesson: null,
     mode: 'add',
-    weekTypeId: null, // Initialize with null
+    weekTypeId: null,
   });
 
-  const [contextMenu, setContextMenu] = useState<{
-    isOpen: boolean;
-    position: { x: number; y: number };
-    groupId: number | null;
-    dayId: number | null;
-    hourId: number | null;
-    lessonIndex: number | null;
-    weekTypeId?: number | null; // Added for consistency if context menu needs it
-  }>({
+  const [contextMenu, setContextMenu] = useState({
     isOpen: false,
     position: { x: 0, y: 0 },
     groupId: null,
     dayId: null,
     hourId: null,
     lessonIndex: null,
-    weekTypeId: null, // Initialize with null
+    weekTypeId: null,
   });
+
+  // Current week type calculation
+  const getCurrentWeekType = () => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+
+    // Academic year starts on September 15
+    const semesterStart = new Date(currentYear, 8, 15); // September 15
+    const secondSemesterStart = new Date(currentYear + 1, 1, 16); // February 16 of next year
+
+    let startDate;
+
+    // Determine which semester we're in
+    if (currentDate >= semesterStart && currentDate < secondSemesterStart) {
+      // First semester (September 15 - February 15)
+      startDate = semesterStart;
+    } else if (currentDate >= secondSemesterStart) {
+      // Second semester (February 16 onwards)
+      startDate = secondSemesterStart;
+    } else {
+      // Before September 15, use previous year's second semester start
+      startDate = new Date(currentYear, 1, 16); // February 16 of current year
+    }
+
+    // Calculate weeks passed since start
+    const timeDiff = currentDate.getTime() - startDate.getTime();
+    const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+    const weeksPassed = Math.floor(daysDiff / 7);
+
+    // First week is always "Üst", then alternates
+    return weeksPassed % 2 === 0 ? 'Üst' : 'Alt';
+  };
+
+  const currentWeekType = getCurrentWeekType();
 
   // This function now can be called without specific IDs to open a generic add modal
   const handleAddLesson = (
-    groupId: number | null = null, // Default to null for header button
-    dayId: number | null = null, // Default to null for header button
-    hourId: number | null = null, // Default to null for header button
-    weekTypeId: number | null = 1, // Default weekTypeId, can be null
+    groupId = null,
+    dayId = null,
+    hourId = null,
+    weekTypeId = 1,
   ) => {
     setModalData({
       isOpen: true,
@@ -68,16 +92,13 @@ function Schedule() {
   };
 
   const handleEditLesson = (
-    groupId: number,
-    dayId: number,
-    hourId: number,
-    lessonIndex: number,
-    weekTypeId: number | null = 1, // Pass weekTypeId to edit modal if relevant
+    groupId,
+    dayId,
+    hourId,
+    lessonIndex,
+    weekTypeId = 1,
   ) => {
     const group = scheduleData.groups.find((g) => g.group_id === groupId);
-    // Note: dayId is 1-indexed here, convert to 0-indexed for array access if needed,
-    // or ensure your data structure uses 1-indexed for 'days' array.
-    // Assuming 'days' is an object/map where dayId is the key, or dayId is 0-indexed when accessed.
     const day = group?.days[dayId];
     const hour = day?.hours.find((h) => h.hour_id === hourId);
     const lesson = hour?.lessons[lessonIndex] || null;
@@ -89,18 +110,18 @@ function Schedule() {
       hourId,
       lessonIndex,
       lesson,
-      weekTypeId, // Pass weekTypeId to the edit modal
+      weekTypeId,
       mode: 'edit',
     });
   };
 
   const handleOpenContextMenu = (
-    e: React.MouseEvent,
-    groupId: number,
-    dayId: number,
-    hourId: number,
-    lessonIndex: number,
-    weekTypeId: number | null = null, // Pass weekTypeId to context menu if it needs it
+    e,
+    groupId,
+    dayId,
+    hourId,
+    lessonIndex,
+    weekTypeId = null,
   ) => {
     e.preventDefault();
     setContextMenu({
@@ -110,7 +131,7 @@ function Schedule() {
       dayId,
       hourId,
       lessonIndex,
-      weekTypeId, // Store weekTypeId in context menu state
+      weekTypeId,
     });
   };
 
@@ -123,6 +144,8 @@ function Schedule() {
   };
 
   const handleEditFromContextMenu = () => {
+    console.log('contextMenu', contextMenu);
+
     if (
       contextMenu.groupId !== null &&
       contextMenu.dayId !== null &&
@@ -134,10 +157,10 @@ function Schedule() {
         contextMenu.dayId,
         contextMenu.hourId,
         contextMenu.lessonIndex,
-        contextMenu.weekTypeId, // Pass weekTypeId from context menu to edit handler
+        contextMenu.weekTypeId,
       );
     }
-    handleCloseContextMenu(); // Close context menu after action
+    handleCloseContextMenu();
   };
 
   // Calculate statistics
@@ -224,17 +247,44 @@ function Schedule() {
                     </p>
                   </div>
                 </div>
+
+                <div className="flex items-center gap-3 bg-white/40 backdrop-blur-md rounded-2xl px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
+                  <div
+                    className={`p-2 rounded-xl shadow-md ${
+                      currentWeekType === 'Üst'
+                        ? 'bg-gradient-to-br from-purple-300 to-violet-400'
+                        : 'bg-gradient-to-br from-rose-300 to-pink-400'
+                    }`}
+                  >
+                    {currentWeekType === 'Üst' ? (
+                      <TrendingUp className="w-5 h-5 text-purple-800" />
+                    ) : (
+                      <TrendingDown className="w-5 h-5 text-rose-800" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-slate-600 text-sm font-medium">
+                      Cari Həftə
+                    </p>
+                    <p
+                      className={`text-lg font-bold ${
+                        currentWeekType === 'Üst'
+                          ? 'text-purple-800'
+                          : 'text-rose-800'
+                      }`}
+                    >
+                      {currentWeekType} Həftə
+                    </p>
+                  </div>
+                </div>
               </div>
-              {/* Buttons for mobile (optional, can be hidden if Header already handles mobile) */}
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className=" ">
-        {' '}
-        {/* Added padding for better layout */}
+      <main className="">
         <ScheduleTable
           onAddLesson={handleAddLesson}
           onOpenContextMenu={handleOpenContextMenu}
@@ -249,11 +299,10 @@ function Schedule() {
       <LessonModal
         isOpen={modalData.isOpen}
         onClose={handleCloseModal}
-        modalData={modalData} // Pass all modalData for consistency
-        mode={modalData.mode} // Use modalData.mode directly
+        modalData={modalData}
+        mode={modalData.mode}
         onSuccess={refreshSchedule}
       />
-
       <ContextMenu
         isOpen={contextMenu.isOpen}
         position={contextMenu.position}
@@ -262,13 +311,9 @@ function Schedule() {
         dayId={contextMenu.dayId}
         hourId={contextMenu.hourId}
         lessonIndex={contextMenu.lessonIndex}
-        weekTypeId={contextMenu.weekTypeId} // Pass weekTypeId to ContextMenu
+        weekTypeId={contextMenu.weekTypeId}
         onEdit={handleEditFromContextMenu}
-        // You might want to add onDelete here if ContextMenu supports it
       />
-
-      {/* Loading Overlay for Better UX */}
-
     </div>
   );
 }

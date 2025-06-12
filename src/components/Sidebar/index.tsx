@@ -138,7 +138,7 @@ const menuItems = [
   return (
     <aside
       ref={sidebar}
-      className={`fixed bg-white shadow-lg left-0 top-0 z-[9999] flex h-screen 
+      className={`fixed bg-white shadow-lg left-0 top-0 z-20 flex h-screen 
       ${collapsed ? 'w-20' : 'w-72.5'} flex-col overflow-y-hidden 
       duration-300 ease-linear dark:bg-boxdark lg:static lg:translate-x-0 
       ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
@@ -212,7 +212,7 @@ const menuItems = [
                       } font-medium duration-300 
                       ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 
                       ${
-                        pathname === item.path && 'bg-[#d4e4ff] dark:bg-meta-4'
+                        pathname === item.path  && 'bg-[#d4e4ff] dark:bg-meta-4'
                       }`}
                       >
                         {/* {item.icon } */}

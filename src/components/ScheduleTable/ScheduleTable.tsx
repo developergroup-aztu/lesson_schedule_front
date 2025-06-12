@@ -11,7 +11,10 @@ interface Hour {
   time: string;
 }
 
-const ScheduleTable: React.FC = ({ onAddLesson, onEditLesson }) => {
+const ScheduleTable: React.FC<{
+  onAddLesson: (...args: any[]) => void;
+  onEditLesson: (...args: any[]) => void;
+}> = ({ onAddLesson, onEditLesson }) => {
   const { scheduleData } = useSchedule();
   const groups = scheduleData.groups;
 
@@ -79,6 +82,26 @@ const ScheduleTable: React.FC = ({ onAddLesson, onEditLesson }) => {
       weekTypeId,
     });
   };
+
+
+   const handleEditFromContextMenu = () => {
+    if (
+      contextMenu.groupId !== null &&
+      contextMenu.dayId !== null &&
+      contextMenu.hourId !== null &&
+      contextMenu.lessonIndex !== null
+    ) {
+      onEditLesson(
+        contextMenu.groupId,
+        contextMenu.dayId,
+        contextMenu.hourId,
+        contextMenu.lessonIndex,
+        contextMenu.weekTypeId,
+      );
+    }
+    setContextMenu((c) => ({ ...c, isOpen: false }));
+  };
+
 
 // ...existing code...
 
@@ -227,19 +250,17 @@ const renderShift = (shiftHours: Hour[], isAfternoon: boolean = false) => (
 
       <div className="relative pt-4 space-y-12">
         {/* Context Menu */}
-        <ContextMenu
-          isOpen={contextMenu.isOpen}
-          position={contextMenu.position}
-          onClose={() => setContextMenu((c) => ({ ...c, isOpen: false }))}
-          groupId={contextMenu.groupId}
-          dayId={contextMenu.dayId}
-          hourId={contextMenu.hourId}
-          lessonIndex={contextMenu.lessonIndex}
-          weekTypeId={contextMenu.weekTypeId}
-          onEdit={() => {
-            /* Modal açmaq və ya başqa əməliyyat */
-          }}
-        />
+      <ContextMenu
+        isOpen={contextMenu.isOpen}
+        position={contextMenu.position}
+        onClose={() => setContextMenu((c) => ({ ...c, isOpen: false }))}
+        groupId={contextMenu.groupId}
+        dayId={contextMenu.dayId}
+        hourId={contextMenu.hourId}
+        lessonIndex={contextMenu.lessonIndex}
+        weekTypeId={contextMenu.weekTypeId}
+        onEdit={handleEditFromContextMenu}
+      />
 
         {/* Morning Shift */}
         {renderShift(morningHours, false)}
