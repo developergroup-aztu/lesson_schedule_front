@@ -141,6 +141,7 @@ const deleteLesson = async (
     return newData;
   });
   // Backend silmə çağırışı və SweetAlert
+
   if (schedule_group_id && deleted) {
     try {
       const res = await del(`/api/schedules/${schedule_group_id}`);

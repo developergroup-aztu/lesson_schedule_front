@@ -41,7 +41,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
     switch (typeId) {
       case 1: // Mühazirə
         return 'bg-blue-50 border-blue-200 hover:bg-blue-100';
-      case 2: // Məşğələ
+      case 2: // əşğələ
         return 'bg-green-50 border-green-200 hover:bg-green-100';
       case 3: // Laboratoriya
         return 'bg-purple-50 border-purple-200 hover:bg-purple-100';
@@ -53,14 +53,14 @@ const LessonCard: React.FC<LessonCardProps> = ({
   const getWeekTypeClass = (typeId: number): string => {
     switch (typeId) {
       case 1: // Daimi
-        return 'bg-gray-600 text-white';
+        return 'bg-gray-600 text-[10px] text-nowrap text-white';
       case 2: // Üst həftə
-        return 'bg-orange-500 text-white';
+      return 'bg-orange-500 text-[10px] text-nowrap text-white';
       case 3: // Alt həftə
-        return 'bg-green-600 text-white';
+        return 'bg-green-600 text-[10px] text-nowrap text-white';
       default:
-        return 'bg-gray-600 text-white';
-    }
+        return 'bg-gray-600 text-[10px] text-nowrap text-white';
+    } 
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -118,7 +118,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
             <span
               className={`${getWeekTypeClass(
                 lesson.week_type_id,
-              )} px-2 py-1 rounded text-[10px] ml-2 font-medium`}
+              )} rounded text-[10px] px-1 py-0.5 ml-2 font-medium`}
             >
               {lesson.week_type_name}
             </span>
@@ -148,7 +148,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
                 <>
                   <Lock size={12} className="text-gray-500" />
                   <button
-                    className="px-2 py-1 text-xs bg-white rounded border border-gray-200 hover:bg-gray-50 transition-colors font-medium text-gray-600"
+                    className="px-1 py-0.5 text-xs bg-white rounded border border-gray-200 hover:bg-gray-50 transition-colors font-medium text-gray-600"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (onAddBeside) onAddBeside();
