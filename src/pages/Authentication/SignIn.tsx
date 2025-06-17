@@ -40,7 +40,7 @@ const SignIn: React.FC = () => {
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-2xl shadow-xl mx-4">
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-bold text-gray-900">Xoş Gəlmisiniz!</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Xoş Gəlmişsiniz!</h2>
           <p className="text-gray-500">Hesabınıza daxil olun</p>
         </div>
 

@@ -24,7 +24,7 @@ const TableHeader: React.FC<TableHeaderProps> = ({ hours }) => {
         ))}
       </tr>
       <tr className="border-b border-gray-300">
-        <th className="border-r border-gray-300 bg-gray-100 sticky left-0 z-20 bg-gray-100"></th>
+        <th className="border-r border-gray-300  sticky left-0 z-20 bg-gray-100"></th>
         {dayNames.map((_, dayIndex) => (
           React.Children.toArray(
             hours.map(hour => (

@@ -15,7 +15,7 @@ import { post, get } from '../../api/service';
 interface HeaderLessonModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void; // əlavə et
+  onSuccess?: () => void; 
 }
 
 interface Group {
@@ -26,16 +26,14 @@ interface Group {
 const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
   isOpen,
   onClose,
-  onSuccess, // əlavə et
+  onSuccess, 
 }) => {
   const { user } = useAuth();
   const facultyId = user?.faculty_id;
 
-  // State
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Form state
   const [formData, setFormData] = useState({
     faculty_id: facultyId || '',
     group_ids: [] as number[],
@@ -50,7 +48,6 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
 
   const [hours, setHours] = useState<{ id: number; time: string }[]>([]);
 
-  // Fetch groups from API
   const fetchGroups = async () => {
     if (!facultyId) return;
 
@@ -66,7 +63,6 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
     }
   };
 
-  // Fetch groups when faculty ID is available
   useEffect(() => {
     if (facultyId) {
       fetchGroups();
@@ -85,7 +81,6 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
     fetchHours();
   }, []);
 
-  // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
       setFormData({
@@ -102,7 +97,6 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
     }
   }, [isOpen, facultyId]);
 
-  // Handle field changes
   const handleFieldChange = (value: any, { name }: { name: string }) => {
     setFormData((prev) => ({
       ...prev,
@@ -110,12 +104,11 @@ const HeaderLessonModal: React.FC<HeaderLessonModalProps> = ({
     }));
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!facultyId) {
-      alert('Fakultə məlumatları tapılmadı!');
+      alert('Fakültə məlumatları tapılmadı!');
       return;
     }
 

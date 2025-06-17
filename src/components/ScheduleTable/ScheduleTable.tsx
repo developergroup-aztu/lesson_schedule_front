@@ -115,13 +115,13 @@ const ScheduleTable: React.FC<{
           } -z-10`}
       />
 
-      <div className="relative backdrop-blur-sm bg-white/60 rounded-3xl border border-white/70 shadow-2xl overflow-hidden">
+      <div className="relative backdrop-blur-sm mt-5 bg-white/60 rounded-3xl border border-white/70 shadow-2xl overflow-hidden">
         {/* Modern Glass Header */}
         <div
           className={`relative px-8 py-6 ${isAfternoon
               ? 'bg-violet-500'
               : 'bg-[#FCB454]'
-            } backdrop-blur-xl`}
+            } backdrop-blur-xl `}
         >
           <div className="absolute inset-0 bg-white/10 backdrop-blur-3xl" />
           <div className="relative flex items-center justify-between">
@@ -131,7 +131,7 @@ const ScheduleTable: React.FC<{
               ) : (
                 <Sun className="w-7 h-7 text-white drop-shadow-lg" />
               )}
-              <div>
+              <div >
                 <h3 className="text-2xl font-bold text-white drop-shadow-lg">
                   {isAfternoon ? 'Günorta Növbəsi' : 'Səhər Növbəsi'}
                 </h3>
@@ -191,7 +191,7 @@ const ScheduleTable: React.FC<{
                         </span>
                       </div>
                     </td>
-
+                  
                     {/* Schedule Cells */}
                     {Array.from({ length: 5 }).map((_, dayIndex) => {
                       const dayId = dayIndex + 1;
@@ -244,7 +244,7 @@ const ScheduleTable: React.FC<{
         {/* Softened */}
       </div>
 
-      <div className="relative pt-4 space-y-12">
+      <div className="relative pt-4 ">
         {/* Context Menu */}
         <ContextMenu
           isOpen={contextMenu.isOpen}

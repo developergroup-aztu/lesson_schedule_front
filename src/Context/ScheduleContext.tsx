@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { ScheduleData, ScheduleContextType, Lesson } from '../types';
 import { useAuth } from './AuthContext';
-import { get, post, del } from '../api/service'; // del əlavə olundu
+import { get, post, del } from '../api/service'; 
 import { useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
@@ -25,7 +25,6 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Schedules-i endpointdən al (refresh üçün ayrıca funksiya)
   const fetchSchedule = useCallback(async () => {
     let facultyId: number | undefined;
 
@@ -107,7 +106,6 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     });
   };
 
-  // Yeni: Dərsi backend-dən sil
 const deleteLesson = async (
   groupId: number,
   dayId: number,
@@ -140,7 +138,6 @@ const deleteLesson = async (
     deleted = true;
     return newData;
   });
-  // Backend silmə çağırışı və SweetAlert
 
   if (schedule_group_id && deleted) {
     try {

@@ -240,10 +240,10 @@ export default function Dashboard() {
           ) : (
             <>
               <DashboardCard
-                title="Fakultələr"
+                title="Fakültələr"
                 count={data.faculty_count}
                 icon={Building2}
-                onClick={() => openModal('Fakultələr', fakeData.faculties)}
+                onClick={() => openModal('Fakültələr', fakeData.faculties)}
               />
 
               <DashboardCard
