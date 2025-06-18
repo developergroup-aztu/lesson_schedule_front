@@ -20,7 +20,7 @@ const UserViewPage = () => {
 
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="">
       <h1 className="text-2xl font-bold mb-4">İstifadəçi Məlumatları</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-md">

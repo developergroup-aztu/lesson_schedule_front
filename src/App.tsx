@@ -14,7 +14,7 @@ import VerifyCode from './pages/Authentication/VerifyCode';
 import ResetPassword from './pages/Authentication/ResetPassword';
 
 // Dashboard Pages
-import ECommerce from './pages/Dashboard/Dashboard';
+import Dashboard from './pages/Dashboard/Dashboard';
 import Profile from './pages/User/Profile';
 
 // User Management Pages
@@ -33,11 +33,10 @@ import Rooms from './pages/Room/Rooms';
 
 // Schedule Pages
 import Schedule from './pages/Schedule/Schedule';
-import AddScheduleLesson from './pages/Schedule/AddScheduleLesson';
 import FacultiesSchedule from './pages/Schedule/FacultiesSchedule';
 import RoomSchedule from './pages/Room/RoomSchedule';
 
-import { ScheduleProvider } from './Context/ScheduleContext';
+import { ScheduleProvider } from './context/ScheduleContext';
 
 function App() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -72,13 +71,13 @@ function App() {
                   <Routes>
                     {/* Common Pages */}
                     <Route path="*" element={<NotFound />} />
-                    <Route index element={<ECommerce />} />
+                    <Route index element={<Dashboard />} />
                     <Route path="profile" element={<Profile />} />
                     <Route path="forms/form-elements" />
 
                     {/* User Management Routes */}
                     <Route
-                      path="users"
+                      path="/users"
                       element={
                         <ProtectedRoute requiredPermission="view_users">
                           <UsersTable />
@@ -86,7 +85,7 @@ function App() {
                       }
                     />
                     <Route
-                      path="/user/add"
+                      path="/users/add"
                       element={
                         <ProtectedRoute requiredPermission="add_user">
                           <AddNewUser />
@@ -94,7 +93,7 @@ function App() {
                       }
                     />
                     <Route
-                      path="/user/edit/:id"
+                      path="/users/edit/:id"
                       element={
                         <ProtectedRoute requiredPermission="edit_user">
                           <EditUser />
@@ -102,13 +101,14 @@ function App() {
                       }
                     />
                     <Route
-                      path="/user/view/:id"
+                      path="/users/view/:id"
                       element={
                         <ProtectedRoute requiredPermission="view_user">
                           <UserViewPage />
                         </ProtectedRoute>
                       }
                     />
+
 
                     {/* Role & Permission Routes */}
                     <Route
@@ -120,7 +120,7 @@ function App() {
                       }
                     />
                     <Route
-                      path="/role/add"
+                      path="/roles/add"
                       element={
                         <ProtectedRoute requiredPermission="add_role">
                           <AddRole />
@@ -128,7 +128,7 @@ function App() {
                       }
                     />
                     <Route
-                      path="/role/edit/:id"
+                      path="/roles/edit/:id"
                       element={
                         <ProtectedRoute requiredPermission="edit_role">
                           <EditRole />
@@ -152,10 +152,10 @@ function App() {
                       }
                     />
                     <Route
-                      path="/room/:id/schedule"
+                      path="/rooms/:id"
                       element={
                         <ProtectedRoute requiredPermission="view_room_schedule">
-                            <RoomSchedule />
+                          <RoomSchedule />
                         </ProtectedRoute>
                       }
                     />
@@ -170,14 +170,6 @@ function App() {
                       }
                     />
                     <Route
-                      path="/schedule/add"
-                      element={
-                        <ProtectedRoute requiredPermission="add_schedule">
-                          <AddScheduleLesson />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
                       path="/faculties"
                       element={
                         <ProtectedRoute requiredPermission="view_faculties">
@@ -186,7 +178,7 @@ function App() {
                       }
                     />
                     <Route
-                      path="/faculty/:id/schedule"
+                      path="/faculties/:id"
                       element={
                         <ProtectedRoute requiredPermission="view_faculty_schedule">
                           <ScheduleProvider>

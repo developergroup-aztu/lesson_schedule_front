@@ -29,25 +29,29 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     let facultyId: number | undefined;
 
     if (
-      (user?.roles.includes("admin") || user?.roles.includes("SuperAdmin"))
+      user?.roles?.includes("admin") || user?.roles?.includes("SuperAdmin")
     ){
-      facultyId = params.id
+      facultyId = params.id ? Number(params.id) : undefined;
     }
-    else{
-      facultyId = user?.faculty_id;
+    else if ((user as any)?.faculty_id) {
+      facultyId = Number((user as any).faculty_id);
     }
 
     if (!facultyId) return;
     setLoading(true);
     try {
       const response = await get(`/api/schedules/${facultyId}`);
-      setScheduleData(response.data);
+      // 3. response.data.groups yoxdursa, boş array ver
+      setScheduleData({
+        ...response.data,
+        groups: response.data.groups ?? [],
+      });
     } catch (error) {
       setScheduleData(null);
     } finally {
       setLoading(false);
     }
-  }, [user?.faculty_id, user?.role, params.facultyId]);
+  }, [user, params.id]);
 
   useEffect(() => {
     fetchSchedule();

@@ -66,12 +66,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchProfile();
-    }
-  }, [location.pathname]);
-
   const login = async (token: string) => {
     localStorage.setItem('token', token);
     await fetchProfile();

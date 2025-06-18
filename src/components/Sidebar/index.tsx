@@ -47,7 +47,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
 
   const isFacultyAdmin = user?.roles.includes('FacultyAdmin');
   const isAdmin = user?.roles.includes('Admin');
-const isSuperAdmin = user?.roles.includes('SuperAdmin');
+  const isSuperAdmin = user?.roles.includes('SuperAdmin');
 
   // Close on click outside
   useEffect(() => {
@@ -91,50 +91,50 @@ const isSuperAdmin = user?.roles.includes('SuperAdmin');
   }, [collapsed]);
 
   // Menu items structure with icons and paths
-const menuItems = [
-  {
-    path: '/',
-    label: 'Dashboard',
-    icon: <LayoutDashboard className="w-5 h-5 " />,
-    permission: !isFacultyAdmin, // FacultyAdmin üçün dashboard gizli
-  },
-  {
-    path: '/faculties',
-    label: 'Fakültələr',
-    icon: <School className="w-5 h-5" />,
-    permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
-  },
-  {
-    path: '/schedules',
-    label: 'Cədvəl',
-    icon: <Calendar className="w-5 h-5" />,
-    permission: isFacultyAdmin,
-  },
-  {
-    path: '/rooms',
-    label: 'Otaqlar',
-    icon: <Building2 className="w-5 h-5" />,
-    permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
-  },
-  {
-    path: '/users',
-    label: 'İstifadəçilər',
-    icon: <Users className="w-5 h-5" />,
-    permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
-  },
-  {
-    path: '/roles',
-    label: 'Rollar',
-    icon: <SquareUser className="w-5 h-5" />,
-    permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
-  },
-  {
-    path: '/permissions',
-    label: 'İcazələr',
-    icon: <Settings className="w-5 h-5" />,
-    permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
-  },
-];
+  const menuItems = [
+    {
+      path: '/',
+      label: 'Dashboard',
+      icon: <LayoutDashboard className="w-5 h-5 " />,
+      permission: !isFacultyAdmin, // FacultyAdmin üçün dashboard gizli
+    },
+    {
+      path: '/faculties',
+      label: 'Fakültələr',
+      icon: <School className="w-5 h-5" />,
+      permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
+    },
+    {
+      path: '/schedules',
+      label: 'Cədvəl',
+      icon: <Calendar className="w-5 h-5" />,
+      permission: isFacultyAdmin,
+    },
+    {
+      path: '/rooms',
+      label: 'Otaqlar',
+      icon: <Building2 className="w-5 h-5" />,
+      permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
+    },
+    {
+      path: '/users',
+      label: 'İstifadəçilər',
+      icon: <Users className="w-5 h-5" />,
+      permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
+    },
+    {
+      path: '/roles',
+      label: 'Rollar',
+      icon: <SquareUser className="w-5 h-5" />,
+      permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
+    },
+    {
+      path: '/permissions',
+      label: 'İcazələr',
+      icon: <Settings className="w-5 h-5" />,
+      permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
+    },
+  ];
   return (
     <aside
       ref={sidebar}
@@ -144,9 +144,8 @@ const menuItems = [
       ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >
       <div
-        className={`flex items-center justify-between ${
-          collapsed ? 'px-2 py-5.5' : 'px-6 py-5.5'
-        } lg:py-6`}
+        className={`flex items-center justify-between ${collapsed ? 'px-2 py-5.5' : 'px-6 py-5.5'
+          } lg:py-6`}
       >
         {!collapsed && (
           <NavLink
@@ -169,9 +168,8 @@ const menuItems = [
 
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className={`${
-            collapsed ? 'mx-auto mt-2' : ''
-          } hidden lg:block hover:bg-gray-100 p-1 rounded-md transition-colors`}
+          className={`${collapsed ? 'mx-auto mt-2' : ''
+            } hidden lg:block hover:bg-gray-100 p-1 rounded-md transition-colors`}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
@@ -200,33 +198,35 @@ const menuItems = [
             )}
 
             <ul className="mb-6 flex flex-col gap-1.5">
-              {menuItems.map(
-                (item, index) =>
-                  item.permission && (
-                    <li key={index}>
-                      <NavLink
-                        to={item.path}
-                        className={`group relative flex items-center gap-2.5 rounded-lg py-2 
-                      ${
-                        collapsed ? 'px-2 justify-center' : 'px-4'
-                      } font-medium duration-300 
-                      ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 
-                      ${
-                        pathname === item.path  && 'bg-[#d4e4ff] dark:bg-meta-4'
-                      }`}
-                      >
-                        {/* {item.icon } */}
-
-                        {item.icon && (
-                          <span className={'w-5 h-5'}>{item.icon}</span>
-                        )}
-                        {!collapsed && <span>{item.label}</span>}
-
-                        {/* Tooltip for collapsed mode */}
-                      </NavLink>
-                    </li>
-                  ),
-              )}
+             {menuItems.map(
+  (item, index) =>
+    item.permission && (
+      <li key={index}>
+        <NavLink
+          to={item.path}
+          className={`group relative flex items-center gap-2.5 rounded-lg py-2 
+            ${collapsed ? 'px-2 justify-center' : 'px-4'}
+            font-medium duration-300 
+            ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 
+            ${
+              item.path === '/'
+                ? pathname === '/'
+                  ? 'bg-[#d4e4ff] dark:bg-meta-4'
+                  : ''
+                : pathname.startsWith(item.path)
+                  ? 'bg-[#d4e4ff] dark:bg-meta-4'
+                  : ''
+            }
+          `}
+        >
+          {item.icon && (
+            <span className={'w-5 h-5'}>{item.icon}</span>
+          )}
+          {!collapsed && <span>{item.label}</span>}
+        </NavLink>
+      </li>
+    ),
+)}
             </ul>
           </div>
         </nav>

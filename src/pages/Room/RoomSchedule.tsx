@@ -3,6 +3,7 @@ import { get } from '../../api/service';
 import { useParams } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
 import { Sun, Moon, Users, MapPin } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const dayNames = ['B.e.', 'Ç.a.', 'Ç.', 'C.a.', 'C.'];
 
@@ -21,13 +22,28 @@ const RoomSchedule = () => {
   const { id } = useParams();
   const [room, setRoom] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRoom = async () => {
       setLoading(true);
+      setError(null);
       try {
         const res = await get(`/api/rooms/${id}`);
         setRoom(res.data);
+      } catch (err: any) {
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          'Otaq məlumatı yüklənmədi';
+        setError(msg);
+        setRoom(null);
+        Swal.fire({
+          icon: 'error',
+          title: 'Xəta',
+          text: msg,
+          confirmButtonColor: '#2563eb',
+        });
       } finally {
         setLoading(false);
       }
@@ -43,10 +59,13 @@ const RoomSchedule = () => {
     );
   }
 
+  if (error) {
+    return <div className="text-center text-red-500 py-10">{error}</div>;
+  }
+
   if (!room) {
     return <div className="text-center text-red-500 py-10">Otaq tapılmadı</div>;
   }
-
   // Saatları tap
   const allHours: { hour_id: number; hour_name: string }[] = [];
   for (const day of Object.values(room.days || {})) {

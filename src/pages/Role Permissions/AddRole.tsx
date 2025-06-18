@@ -61,7 +61,6 @@ const AddRole: React.FC = () => {
   return (
     <div className="container mx-auto">
       <h2 className="text-2xl font-bold mb-6">Yeni Rol Əlavə Et</h2>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
       <div className="mb-4 flex items-end">
         <div className="w-2/6 mr-4">
           <label
@@ -80,6 +79,7 @@ const AddRole: React.FC = () => {
             onChange={(e) => setName(e.target.value)}
           />
         </div>
+        
         <button
           type="button"
           className="bg-indigo-600 text-white px-4 text-sm py-2 rounded-lg-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -88,6 +88,8 @@ const AddRole: React.FC = () => {
           Əlavə Et
         </button>
       </div>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+
       <div className="mb-6">
         <h3 className="text-xl font-semibold mb-4">İcazələr</h3>
         {Object.keys(groupedPermissions).map((group) => (

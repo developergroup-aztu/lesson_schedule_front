@@ -68,3 +68,16 @@ export interface SelectOption {
   value: number;
   label: string;
 }
+
+
+export interface Department {
+  faculty_code: string;
+  name: string;
+}
+
+export interface Faculty {
+  id: string;
+  name: string;
+  faculty_code: string;
+  departments: Department[];
+}
