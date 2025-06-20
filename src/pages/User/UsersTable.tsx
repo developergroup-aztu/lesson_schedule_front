@@ -35,12 +35,9 @@ const UserTable: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // URL search params istifadə edirik
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedRole, setSelectedRole] = useState(searchParams.get('role') || '');
-
-  // Axtarış üçün yeni state əlavə edirik, bu state birbaşa inputa bağlı olacaq
   const [inputSearchTerm, setInputSearchTerm] = useState(searchTerm);
 
   const profile = useProfile();
@@ -81,8 +78,8 @@ const UserTable: React.FC = () => {
       try {
         const response = await get('/api/roles');
         setRoles(response.data);
-      } catch (error) {
-        // Roles üçün error göstərməyə ehtiyac yoxdur
+      } catch {
+        // ignore
       }
     };
 
@@ -92,17 +89,13 @@ const UserTable: React.FC = () => {
     }
   }, [profile]);
 
-  // Search və filter dəyişikliklərini URL-ə yazırıq
   useEffect(() => {
     const params = new URLSearchParams();
     if (searchTerm) params.set('search', searchTerm);
     if (selectedRole) params.set('role', selectedRole);
-
-    // URL-ni yeniləyirik
     setSearchParams(params, { replace: true });
   }, [searchTerm, selectedRole, setSearchParams]);
 
-  // Filtering logic
   useEffect(() => {
     const results = users.filter(
       (user) =>
@@ -113,25 +106,19 @@ const UserTable: React.FC = () => {
     setFilteredUsers(results);
   }, [searchTerm, selectedRole, users]);
 
-  // inputSearchTerm dəyişdikdə searchTerm-i debounce ilə yenilə
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchTerm(inputSearchTerm.trim());
-    }, 300); // 300ms debounce müddəti
-
-    return () => {
-      clearTimeout(handler);
-    };
+    }, 300);
+    return () => clearTimeout(handler);
   }, [inputSearchTerm]);
 
   const handleEdit = (id: number) => {
-    // Mövcud search parametrlərini saxlayaraq edit səhifəsinə yönləndiririk
     const currentParams = searchParams.toString();
     navigate(`/users/edit/${id}?returnTo=${encodeURIComponent(`/users?${currentParams}`)}`);
   };
 
   const handleView = (id: number) => {
-    // Mövcud search parametrlərini saxlayaraq view səhifəsinə yönləndiririk
     const currentParams = searchParams.toString();
     navigate(`/users/view/${id}?returnTo=${encodeURIComponent(`/users?${currentParams}`)}`);
   };
@@ -166,21 +153,16 @@ const UserTable: React.FC = () => {
   };
 
   const handleAddNewUser = () => {
-    // Mövcud search parametrlərini saxlayaraq add səhifəsinə yönləndiririk
     const currentParams = searchParams.toString();
     navigate(`/users/add?returnTo=${encodeURIComponent(`/users?${currentParams}`)}`);
   };
 
-  // Search input dəyişikliyi
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // inputSearchTerm-i birbaşa yeniləyirik
     setInputSearchTerm(e.target.value);
   };
 
-  // Role filter dəyişikliyi
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSelectedRole(value);
+    setSelectedRole(e.target.value);
   };
 
   if (!profile) {
@@ -195,12 +177,10 @@ const UserTable: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-[80vh] bg-gradient-to-br from-indigo-50 to-purple-50">
-        <div className="flex flex-col items-center gap-4 p-8 bg-white/80 rounded-2xl shadow-2xl border border-indigo-100">
-          <ClipLoader size={60} color="#6366f1" speedMultiplier={1.2} />
-          <span className="text-indigo-700 font-semibold text-lg animate-pulse">
-            İstifadəçilər yüklənir...
-          </span>
+      <div className="flex justify-center items-center h-[80vh]">
+        <div className="flex flex-col items-center gap-4">
+          <ClipLoader size={40} color="#6366f1" />
+          <span className="text-gray-600 font-medium">İstifadəçilər yüklənir...</span>
         </div>
       </div>
     );
@@ -209,10 +189,8 @@ const UserTable: React.FC = () => {
   if (error) {
     return (
       <div className="flex justify-center items-center h-[80vh]">
-        <div className="bg-red-50 dark:bg-red-900/20 p-8 rounded-2xl shadow-xl border border-red-200 dark:border-red-800">
-          <p className="text-red-600 dark:text-red-400 text-lg text-center font-medium">
-            {error}
-          </p>
+        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg">
+          <p className="text-red-600 dark:text-red-400 text-center">{error}</p>
         </div>
       </div>
     );
@@ -220,136 +198,101 @@ const UserTable: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb pageName="İstifadəçilər" />
+        <Breadcrumb pageName="İstifadəçilər" />
+        {hasAddPermission && (
+         <div className='flex justify-end mb-4'>
+           <button
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            onClick={handleAddNewUser}
+          >
+            <FaUserPlus className="w-4 h-4" />
+            Yeni İstifadəçi
+          </button>
+         </div>
+        )}
 
-      {/* Header Card */}
-      <div className="relative rounded-2xl shadow-xl overflow-hidden">
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 opacity-95" />
-        {/* Optional: əlavə yumşaq işıq effekti */}
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-300 opacity-30 rounded-full blur-2xl" />
-        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-300 opacity-20 rounded-full blur-2xl" />
-        {/* Content */}
-        <div className="relative p-6 text-white">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold mb-2">İstifadəçi İdarəetməsi</h1>
-              <p className="text-blue-100">
-                Cəmi {filteredUsers.length} istifadəçi tapıldı
-              </p>
+      {/* Search & Filter */}
+      <div className="flex flex-col gap-2 mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 w-full">
+          <div className="flex flex-1 gap-2">
+            <div className="relative flex-1">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Ad və ya emailə görə axtarın..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 transition-all text-gray-700"
+                value={inputSearchTerm}
+                onChange={handleSearchChange}
+              />
             </div>
-            {hasAddPermission && (
-              <button
-                className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white px-6 py-3 rounded-xl transition-all duration-300 flex items-center gap-2 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
-                onClick={handleAddNewUser}
+            <div className="relative min-w-[180px]">
+              <HiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <select
+                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 transition-all text-gray-700"
+                value={selectedRole}
+                onChange={handleRoleChange}
               >
-                <FaUserPlus className="w-5 h-5" />
-                Yeni İstifadəçi
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Filter Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="relative flex-1">
-            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Ad və ya emailə görə axtarın..."
-              className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-300 text-gray-700 dark:text-gray-300"
-              value={inputSearchTerm} // inputSearchTerm-i istifadə edirik
-              onChange={handleSearchChange} // yeni handler
-            />
-          </div>
-          <div className="relative">
-            <HiFilter className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <select
-              className="pl-12 pr-8 py-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-300 min-w-[200px] appearance-none bg-white dark:text-gray-300"
-              value={selectedRole}
-              onChange={handleRoleChange}
-            >
-              <option value="">Bütün rollar</option>
-              {roles.map((role) => (
-                <option key={role.id} value={role.name}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
+                <option value="">Bütün rollar</option>
+                {roles.map((role) => (
+                  <option key={role.id} value={role.name}>
+                    {role.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden lg:block">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700">
-          <table className="min-w-full">
-            <thead>
-              <tr className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
-                <th className="py-4 px-6 text-left font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
-                  İSTİFADƏÇİ
-                </th>
-                <th className="py-4 px-6 text-left font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
-                  EMAIL
-                </th>
-                <th className="py-4 px-6 text-left font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
-                  ROLLAR
-                </th>
-                <th className="py-4 px-6 text-center font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
-                  ƏMƏLIYYATLAR
-                </th>
+      <div className="bg-white rounded-lg shadow border border-gray-100 overflow-x-auto hidden lg:block">
+        <table className="min-w-full bg-white">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">#</th>
+              <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">Ad</th>
+              <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">Email</th>
+              <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">Rollar</th>
+              <th className="py-4 px-6 border-b text-center font-semibold text-gray-700">Əməliyyatlar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-8 text-gray-500">İstifadəçi tapılmadı</td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user, index) => (
-                <tr
-                  key={user.id}
-                  className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300 ${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-800/50'
-                    }`}
-                >
-                  <td className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {user.name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      {user.email}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">
+            ) : (
+              filteredUsers.map((user, idx) => (
+                <tr key={user.id} className="hover:bg-gray-50 transition">
+                  <td className="py-3 px-6 border-b">{idx + 1}</td>
+                  <td className="py-3 px-6 border-b">{user.name}</td>
+                  <td className="py-3 px-6 border-b">{user.email}</td>
+                  <td className="py-3 px-6 border-b">
                     <div className="flex flex-wrap gap-1">
                       {Object.keys(user.roles).map((role) => (
                         <span
                           key={role}
-                          className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-medium"
+                          className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium"
                         >
                           {role}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">
-                    <div className="flex justify-center gap-2">
+                  <td className="py-3 px-6 border-b text-center">
+                    <div className="flex justify-center gap-1">
                       {hasViewPermission && (
                         <button
-                          className="bg-amber-500 hover:bg-amber-600 text-white p-2.5 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110"
+                          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-600 p-1.5 rounded transition-colors"
                           onClick={() => handleView(user.id)}
                           title="Bax"
                         >
-                          <PiEyeLight className="w-4 h-4" />
+                          <PiEyeLight className="w-5 h-5" />
                         </button>
                       )}
                       {hasEditPermission && (
                         <button
-                          className="bg-blue-500 hover:bg-blue-600 text-white p-2.5 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110"
+                          className="bg-blue-100 hover:bg-blue-200 text-blue-600 p-1.5 rounded transition-colors"
                           onClick={() => handleEdit(user.id)}
                           title="Redaktə et"
                         >
@@ -358,7 +301,7 @@ const UserTable: React.FC = () => {
                       )}
                       {hasDeletePermission && (
                         <button
-                          className="bg-red-500 hover:bg-red-600 text-white p-2.5 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110"
+                          className="bg-red-100 hover:bg-red-200 text-red-600 p-1.5 rounded transition-colors"
                           onClick={() => handleDelete(user)}
                           title="Sil"
                         >
@@ -368,37 +311,37 @@ const UserTable: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Mobile Card View */}
-      <div className="lg:hidden space-y-4">
-        {filteredUsers.map((user) => (
+      <div className="lg:hidden space-y-3">
+        {filteredUsers.map((user, idx) => (
           <div
             key={user.id}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+            className="bg-white rounded-lg shadow border border-gray-200 p-4"
           >
             <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100 truncate">
+                  <h3 className="font-semibold text-base text-gray-900 truncate">
                     {user.name}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 truncate text-sm">
+                  <p className="text-gray-600 truncate text-sm">
                     {user.email}
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-1 flex-shrink-0">
                 {hasViewPermission && (
                   <button
-                    className="bg-amber-500 hover:bg-amber-600 text-white p-2 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+                    className="bg-yellow-100 hover:bg-yellow-200 text-yellow-600 p-1.5 rounded transition-colors"
                     onClick={() => handleView(user.id)}
                   >
                     <PiEyeLight className="w-4 h-4" />
@@ -406,7 +349,7 @@ const UserTable: React.FC = () => {
                 )}
                 {hasEditPermission && (
                   <button
-                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+                    className="bg-blue-100 hover:bg-blue-200 text-blue-600 p-1.5 rounded transition-colors"
                     onClick={() => handleEdit(user.id)}
                   >
                     <FaRegEdit className="w-4 h-4" />
@@ -414,7 +357,7 @@ const UserTable: React.FC = () => {
                 )}
                 {hasDeletePermission && (
                   <button
-                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+                    className="bg-red-100 hover:bg-red-200 text-red-600 p-1.5 rounded transition-colors"
                     onClick={() => openModal(user)}
                   >
                     <AiOutlineDelete className="w-4 h-4" />
@@ -422,10 +365,9 @@ const UserTable: React.FC = () => {
                 )}
               </div>
             </div>
-
-            <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
+            <div className="border-t border-gray-100 pt-4">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                <span className="text-sm font-medium text-gray-500">
                   Rollar:
                 </span>
               </div>
@@ -433,7 +375,7 @@ const UserTable: React.FC = () => {
                 {Object.keys(user.roles).map((role) => (
                   <span
                     key={role}
-                    className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-medium"
+                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium"
                   >
                     {role}
                   </span>
@@ -446,14 +388,14 @@ const UserTable: React.FC = () => {
 
       {/* Empty State */}
       {filteredUsers.length === 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 text-center border border-gray-100 dark:border-gray-700">
-          <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FaSearch className="w-8 h-8 text-gray-400" />
+        <div className="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FaSearch className="w-6 h-6 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
             Heç bir istifadəçi tapılmadı
           </h3>
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-gray-500">
             Axtarış kriteriyalarınızı dəyişərək yenidən cəhd edin
           </p>
         </div>

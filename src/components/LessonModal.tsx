@@ -6,6 +6,7 @@ import { dayNames, mockScheduleData } from '../data/mockData';
 import { post, get, put } from '../api/service';
 import { useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import useSweetAlert from '../hooks/useSweetAlert';
 // Təkmilləşdirilmiş VirtualSelect komponenti
 const VirtualSelect = ({
   value,
@@ -18,12 +19,13 @@ const VirtualSelect = ({
   disabled = false,
   searchPlaceholder = 'Axtarış...',
   error = false,
+  dropdownDirection = 'bottom',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const containerRef = useRef(null);
   const inputRef = useRef(null);
-  
+
 
   const filtered = options.filter((opt) =>
     (opt[labelKey] || opt.name || opt.label || '')
@@ -98,10 +100,9 @@ const VirtualSelect = ({
         className={`
           w-full px-3 py-2.5 border rounded-lg text-left bg-white flex items-center justify-between
           transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500
-          ${
-            disabled
-              ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
-              : 'hover:border-gray-400'
+          ${disabled
+            ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+            : 'hover:border-gray-400'
           }
           ${error ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
           ${isOpen ? 'border-blue-500 ring-2 ring-blue-500' : ''}
@@ -116,15 +117,18 @@ const VirtualSelect = ({
         </span>
         <ChevronDown
           size={16}
-          className={`text-gray-400 transition-transform duration-200 ${
-            isOpen ? 'rotate-180' : ''
-          }`}
+          className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
+            }`}
         />
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 bg-white border border-gray-200 rounded-lg w-full mt-1 shadow-xl max-h-64 overflow-hidden">
-          {/* Search input */}
+<div
+          className={`
+            absolute z-50 bg-white border border-gray-200 rounded-lg w-full shadow-xl overflow-hidden
+            ${dropdownDirection === 'top' ? 'bottom-full mb-2' : 'top-full mt-1'}
+          `}
+        >          {/* Search input */}
           <div className="p-3 border-b border-gray-100">
             <div className="relative">
               <Search
@@ -154,10 +158,9 @@ const VirtualSelect = ({
                   className={`
                     px-3 py-2.5 cursor-pointer transition-colors duration-150
                     hover:bg-blue-50 hover:text-blue-900
-                    ${
-                      value?.toString() === (opt.id || opt.value)?.toString()
-                        ? 'bg-blue-100 text-blue-900 font-medium'
-                        : 'text-gray-700'
+                    ${value?.toString() === (opt.id || opt.value)?.toString()
+                      ? 'bg-blue-100 text-blue-900 font-medium'
+                      : 'text-gray-700'
                     }
                   `}
                   onClick={() => handleSelect(opt)}
@@ -186,12 +189,11 @@ const LessonModal: React.FC<LessonModalProps> = ({
   onClose,
   modalData,
   mode = 'cell',
-  onSuccess = () => {},
+  onSuccess = () => { },
 }) => {
   const { scheduleData } = useSchedule();
   const { user } = useAuth();
   const modalRef = useRef(null);
-
   const params = useParams();
 
   const facultyId =
@@ -212,6 +214,7 @@ const LessonModal: React.FC<LessonModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { successAlert, errorAlert } = useSweetAlert();
 
   // Form state
   const [formData, setFormData] = useState<any>({
@@ -304,33 +307,33 @@ const LessonModal: React.FC<LessonModalProps> = ({
     fetchAll();
   }, [facultyId, isOpen]);
   // Edit və ya add üçün formu doldur
- useEffect(() => {
-  if (modalData.lesson) {
-    setFormData({
-      group_id: [modalData.groupId],
-      day_id: modalData.dayId,
-      hour_id: modalData.hourId,
-      subject_id: modalData.lesson.subject_id,
-      lesson_type_id: modalData.lesson.lesson_type_id,
-      week_type_id: modalData.lesson.week_type_id,
-      // Düzəliş: teacher_code üçün həmişə external_id istifadə et
-      teacher_code: modalData.lesson.teacher_code || '', // teacher_code artıq external_id-dir
-      room_id: modalData.lesson.room_id || '',
-    });
-  } else {
-    setFormData({
-      group_id: modalData.groupId ? [modalData.groupId] : [],
-      day_id: modalData.dayId || '',
-      hour_id: modalData.hourId || '',
-      subject_id: '',
-      lesson_type_id: '',
-      week_type_id: modalData.weekTypeId || '',
-      teacher_code: '',
-      room_id: '',
-    });
-  }
-  setErrors({});
-}, [modalData]);
+  useEffect(() => {
+    if (modalData.lesson) {
+      setFormData({
+        group_id: [modalData.groupId],
+        day_id: modalData.dayId,
+        hour_id: modalData.hourId,
+        subject_id: modalData.lesson.subject_id,
+        lesson_type_id: modalData.lesson.lesson_type_id,
+        week_type_id: modalData.lesson.week_type_id,
+        // Düzəliş: teacher_code üçün həmişə external_id istifadə et
+        teacher_code: modalData.lesson.teacher_code || '', // teacher_code artıq external_id-dir
+        room_id: modalData.lesson.room_id || '',
+      });
+    } else {
+      setFormData({
+        group_id: modalData.groupId ? [modalData.groupId] : [],
+        day_id: modalData.dayId || '',
+        hour_id: modalData.hourId || '',
+        subject_id: '',
+        lesson_type_id: '',
+        week_type_id: modalData.weekTypeId || '',
+        teacher_code: '',
+        room_id: '',
+      });
+    }
+    setErrors({});
+  }, [modalData]);
 
 
   // Validation
@@ -398,28 +401,26 @@ const handleSubmit = async (e: React.FormEvent) => {
       ? formData.group_id
       : [formData.group_id];
 
-    // Həm əlavə, həm də update üçün postData hazırla
     const postData: any = {
       faculty_id: facultyId,
-      group_id: groupIds[0], // update üçün birinci qrup id-si
+      group_id: groupIds[0],
       day_id: Number(formData.day_id),
       hour_id: Number(formData.hour_id),
       week_type_id: Number(formData.week_type_id),
       subject_id: Number(formData.subject_id),
       lesson_type_id: Number(formData.lesson_type_id),
       teacher_code: formData.teacher_code,
-      // Otaq yalnız FacultyAdmin deyilse göndərilsin
       ...(isFacultyAdmin ? {} : { room_id: Number(formData.room_id) }),
     };
 
     if (modalData.mode === 'edit' && modalData.lesson?.schedule_id) {
-      // UPDATE (PUT)
       postData.schedule_group_id = modalData.lesson.schedule_group_id;
       await put(`/api/schedules/${modalData.lesson.schedule_id}`, postData);
+      successAlert('Uğurlu', 'Dərs uğurla yeniləndi!');
     } else {
-      // ADD (POST)
       postData.group_ids = groupIds;
       await post('/api/schedules', postData);
+      successAlert('Uğurlu', 'Dərs uğurla əlavə olundu!');
     }
 
     onClose();
@@ -429,12 +430,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     if (error?.response?.data?.message) {
       message = error.response.data.message;
     }
-    Swal.fire({
-      icon: 'error',
-      title: 'Xəta',
-      text: message,
-      confirmButtonColor: '#2563eb',
-    });
+    errorAlert('Xəta', message);
   } finally {
     setIsSubmitting(false);
   }
@@ -489,18 +485,19 @@ const handleSubmit = async (e: React.FormEvent) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Qrup <span className="text-red-500">*</span>
                   </label>
-                  <VirtualSelect
-                    value={formData.group_id}
-                    onChange={handleFieldChange}
-                    name="group_id"
-                    options={groups.map((group) => ({
-                      id: group.id || group.group_id,
-                      name: group.name || group.group_name,
-                    }))}
-                    required
-                    error={!!errors.group_id}
-                    placeholder="Qrup seçin"
-                  />
+                 <VirtualSelect
+  value={formData.group_id}
+  onChange={handleFieldChange}
+  name="group_id"
+  options={groups.map((group) => ({
+    id: group.id || group.group_id,
+    name: group.name || group.group_name,
+  }))}
+  required
+  error={!!errors.group_id}
+  placeholder="Qrup seçin"
+  disabled={modalData.mode === 'add' && !!formData.group_id && formData.group_id.length > 0}
+/>
                   {errors.group_id && (
                     <p className="mt-1 text-sm text-red-600">
                       {errors.group_id}
@@ -598,6 +595,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     required
                     error={!!errors.lesson_type_id}
                     placeholder="Dərs tipi seçin"
+                    dropdownDirection="top"
                   />
                   {errors.lesson_type_id && (
                     <p className="mt-1 text-sm text-red-600">
@@ -621,6 +619,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     required
                     error={!!errors.week_type_id}
                     placeholder="Həftə tipi seçin"
+                    dropdownDirection="top"
                   />
                   {errors.week_type_id && (
                     <p className="mt-1 text-sm text-red-600">
@@ -636,19 +635,20 @@ const handleSubmit = async (e: React.FormEvent) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Müəllim <span className="text-red-500">*</span>
                   </label>
-                 <VirtualSelect
-  value={formData.teacher_code}
-  onChange={handleFieldChange}
-  name="teacher_code"
-  options={professors.map((prof) => ({
-    id: prof.external_id, // external_id POST üçün və seçili dəyər üçün istifadə olunur
-    name: `${prof.name || ''} ${prof.surname || ''}`.trim(),
-  }))}
-  required
-  error={!!errors.teacher_code}
-  placeholder="Müəllim seçin"
-  searchPlaceholder="Müəllim axtarın..."
-/>
+                  <VirtualSelect
+                    value={formData.teacher_code}
+                    onChange={handleFieldChange}
+                    name="teacher_code"
+                    options={professors.map((prof) => ({
+                      id: prof.external_id, // external_id POST üçün və seçili dəyər üçün istifadə olunur
+                      name: `${prof.name || ''} ${prof.surname || ''}`.trim(),
+                    }))}
+                    required
+                    error={!!errors.teacher_code}
+                    placeholder="Müəllim seçin"
+                    searchPlaceholder="Müəllim axtarın..."
+                    dropdownDirection="top"
+                  />
                   {errors.teacher_code && (
                     <p className="mt-1 text-sm text-red-600">
                       {errors.teacher_code}
@@ -672,6 +672,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       error={!!errors.room_id}
                       placeholder="Otaq seçin"
                       searchPlaceholder="Otaq axtarın..."
+                      dropdownDirection="top"
                     />
                     {errors.room_id && (
                       <p className="mt-1 text-sm text-red-600">

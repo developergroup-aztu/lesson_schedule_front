@@ -150,9 +150,10 @@ const ScheduleTable: React.FC<{
         </div>
 
         {/* Table Container */}
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <TableHeader hours={shiftHours} />
+<div className="overflow-x-auto">
+  <div className="max-h-[80vh] overflow-auto">
+    <table className="w-full border-collapse">
+      <TableHeader hours={shiftHours} />
             <tbody className="divide-y divide-slate-200/50">
               {groups
                 .filter((group) => {
@@ -219,6 +220,7 @@ const ScheduleTable: React.FC<{
                 ))}
             </tbody>
           </table>
+        </div>
         </div>
       </div>
     </div>

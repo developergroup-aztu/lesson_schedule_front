@@ -70,6 +70,22 @@ function Schedule() {
     return weeksPassed % 2 === 0 ? 'Üst' : 'Alt';
   };
 
+  // Schedule komponentinin içində, getCurrentWeekType funksiyasının altına əlavə edin:
+  const getCurrentSemester = () => {
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const fallStart = new Date(year, 8, 15); // 15 sentyabr
+    const springStart = new Date(year + 1, 1, 16); // 16 fevral növbəti il
+
+    if (currentDate >= fallStart && currentDate < springStart) {
+      return 'Payız Semestri';
+    } else {
+      return 'Yaz Semestri';
+    }
+  };
+
+  const currentSemester = getCurrentSemester();
+
   const currentWeekType = getCurrentWeekType();
 
   // This function now can be called without specific IDs to open a generic add modal
@@ -250,11 +266,10 @@ function Schedule() {
 
                 <div className="flex items-center gap-3 bg-white/40 backdrop-blur-md rounded-2xl px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
                   <div
-                    className={`p-2 rounded-xl shadow-md ${
-                      currentWeekType === 'Üst'
+                    className={`p-2 rounded-xl shadow-md ${currentWeekType === 'Üst'
                         ? 'bg-gradient-to-br from-purple-300 to-violet-400'
                         : 'bg-gradient-to-br from-rose-300 to-pink-400'
-                    }`}
+                      }`}
                   >
                     {currentWeekType === 'Üst' ? (
                       <TrendingUp className="w-5 h-5 text-purple-800" />
@@ -267,13 +282,15 @@ function Schedule() {
                       Cari Həftə
                     </p>
                     <p
-                      className={`text-lg font-bold ${
-                        currentWeekType === 'Üst'
+                      className={`text-lg font-bold ${currentWeekType === 'Üst'
                           ? 'text-purple-800'
                           : 'text-rose-800'
-                      }`}
+                        }`}
                     >
                       {currentWeekType} Həftə
+                    </p>
+                    <p className="text-xs font-semibold text-slate-500 mt-1">
+                      {currentSemester}
                     </p>
                   </div>
                 </div>

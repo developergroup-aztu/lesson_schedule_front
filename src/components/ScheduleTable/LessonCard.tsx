@@ -55,12 +55,12 @@ const LessonCard: React.FC<LessonCardProps> = ({
       case 1: // Daimi
         return 'bg-gray-600 text-[10px] text-nowrap text-white';
       case 2: // Üst həftə
-      return 'bg-orange-500 text-[10px] text-nowrap text-white';
+        return 'bg-orange-500 text-[10px] text-nowrap text-white';
       case 3: // Alt həftə
         return 'bg-green-600 text-[10px] text-nowrap text-white';
       default:
         return 'bg-gray-600 text-[10px] text-nowrap text-white';
-    } 
+    }
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -91,11 +91,10 @@ const LessonCard: React.FC<LessonCardProps> = ({
 
   return (
     <div
-      className={`${
-        isMultiple
+      className={`${isMultiple
           ? 'border-r-2 last:border-r-0 border-dashed border-gray-200'
           : ''
-      } 
+        } 
                   ${getLessonTypeClass(lesson.lesson_type_id)} 
                   p-3 rounded-lg text-xs cursor-pointer transition-colors duration-200 
                   flex-1 relative flex items-center border`}

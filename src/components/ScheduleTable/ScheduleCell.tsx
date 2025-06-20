@@ -151,11 +151,11 @@ const ScheduleCell: React.FC<ScheduleCellProps> = ({
           {addMenuTarget && addMenuTarget.weekType === 1 && (
             <div
               ref={addMenuRef}
-              className="absolute bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-20 flex flex-col gap-1 right-0 top-full mt-1"
+              className="absolute bg-white border  rounded-lg   z-20 flex flex-col gap-1  -right-7 top-[75%] mt-1"
             >
               <button
                 onClick={() => handleAddBesideLesson(1)}
-                className="px-3 py-2 text-xs bg-gray-50 rounded hover:bg-gray-100 transition-colors text-gray-700 border border-gray-200"
+                className="px-1 py-1  text-xs rounded hover:bg-gray-100 transition-colors text-gray-700 border border-gray-200"
               >
                 Daimi
               </button>
@@ -218,11 +218,11 @@ const ScheduleCell: React.FC<ScheduleCellProps> = ({
               {addMenuTarget && addMenuTarget.weekType === 2 && (
                 <div
                   ref={addMenuRef}
-                  className="absolute bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-20 flex flex-col gap-1 right-0 top-full mt-1"
+                  className="absolute bg-white border  rounded-lg shadow-lg z-20 flex flex-col gap-1 -right-12 top-[75%] mt-1"
                 >
                   <button
                     onClick={() => handleAddBesideLesson(2)}
-                    className="px-3 py-2 text-xs bg-orange-50 rounded hover:bg-orange-100 transition-colors text-orange-700 border border-orange-200"
+                    className="px-1 py-1 text-xs bg-orange-50 rounded hover:bg-orange-100 transition-colors text-orange-700 border border-orange-200"
                   >
                     Üst həftə
                   </button>
@@ -273,11 +273,11 @@ const ScheduleCell: React.FC<ScheduleCellProps> = ({
               {addMenuTarget && addMenuTarget.weekType === 3 && (
                 <div
                   ref={addMenuRef}
-                  className="absolute bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-20 flex flex-col gap-1 right-0 top-full mt-1"
+                  className="absolute bg-white border  rounded-lg shadow-lg z-20 flex flex-col gap-1 -right-[45px] top-[75%] mt-1"
                 >
                   <button
                     onClick={() => handleAddBesideLesson(3)}
-                    className="px-3 py-2 text-xs bg-green-50 rounded hover:bg-green-100 transition-colors text-green-700 border border-green-200"
+                    className="px-1 py-1 text-xs bg-green-50 rounded hover:bg-green-100 transition-colors text-green-700 border border-green-200"
                   >
                     Alt həftə
                   </button>
