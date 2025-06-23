@@ -19,9 +19,9 @@ const EditUser: React.FC = () => {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
-  const [patronymic, setPatronymic] = useState('');
-  const [duty, setDuty] = useState('');
-  const [employeeType, setEmployeeType] = useState('');
+  // const [patronymic, setPatronymic] = useState(''); // Silindi
+  // const [duty, setDuty] = useState(''); // Silindi
+  // const [employeeType, setEmployeeType] = useState(''); // Silindi
   const [facultyId, setFacultyId] = useState<number | null>(null);
   const [email, setEmail] = useState('');
   const [roleId, setRoleId] = useState<number | null>(null);
@@ -38,9 +38,9 @@ const EditUser: React.FC = () => {
         const userData = response.data;
         setName(userData.name || '');
         setSurname(userData.surname || '');
-        setPatronymic(userData.patronymic || '');
-        setDuty(userData.duty || '');
-        setEmployeeType(userData.employee_type || '');
+        // setPatronymic(userData.patronymic || ''); // Silindi
+        // setDuty(userData.duty || ''); // Silindi
+        // setEmployeeType(userData.employee_type || ''); // Silindi
         setFacultyId(userData.faculty?.id || null);
         setEmail(userData.email || '');
         setRoleId(Array.isArray(userData.roles)
@@ -82,7 +82,7 @@ const EditUser: React.FC = () => {
     const selectedRole = allRoles.find(role => role.id === roleId);
 
     if ((selectedRole?.name === 'admin' || selectedRole?.name === 'SuperAdmin') && facultyId) {
-      errorAlert('Xəta', 'Admin və ya SuperAdmin heçbir fakültəyə əlavə oluna bilməz.');
+      errorAlert('Xəta', 'Admin və ya SuperAdmin heç bir fakültəyə əlavə oluna bilməz.');
       setIsLoading(false);
       return;
     }
@@ -94,7 +94,7 @@ const EditUser: React.FC = () => {
     }
 
     if (selectedRole?.name === 'teacher' && !facultyId) {
-      errorAlert('Xəta', 'Teacher bir fakültəyə əlavə olunmalıdır.');
+      errorAlert('Xəta', 'Müəllim bir fakültəyə əlavə olunmalıdır.');
       setIsLoading(false);
       return;
     }
@@ -103,17 +103,20 @@ const EditUser: React.FC = () => {
       let payload: any = {
         name,
         surname,
-        patronymic,
-        duty,
-        employee_type: employeeType,
+        // patronymic, // Silindi
+        // duty, // Silindi
+        // employee_type: employeeType, // Silindi
         email,
         role_id: roleId,
       };
 
-      if (roleId !== 3) { // Əgər admin deyilsə
+      // Role'a görə faculty_id əlavə etmək məntiqi qorundu
+      if (selectedRole?.name !== 'admin' && selectedRole?.name !== 'SuperAdmin') {
         payload.faculty_id = facultyId;
+      } else {
+        payload.faculty_id = null; // Admin və SuperAdmin üçün fakültə ID-si boş olmalıdır
       }
-
+      
       await put(`/api/users/${id}`, payload);
       successAlert('Uğurlu', 'İstifadəçi yeniləndi.');
       navigate('/users');
@@ -131,7 +134,8 @@ const EditUser: React.FC = () => {
   return (
     <div className="">
       <div className="bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4">
+        {/* Başlıq rəngi dəyişdirildi */}
+        <div className="bg-blue-600 px-6 py-4"> {/* Burada gradient fon sadə rənglə əvəz olundu */}
           <h2 className="text-2xl font-bold text-white">İstifadəçini Redaktə Et</h2>
         </div>
         <div className="p-6 sm:p-8">
@@ -141,7 +145,7 @@ const EditUser: React.FC = () => {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Şəxsi Məlumatlar
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Qrid sütun sayı azaldı */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Ad *
@@ -168,24 +172,12 @@ const EditUser: React.FC = () => {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Ata adı *
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-all outline-none duration-200"
-                    value={patronymic}
-                    onChange={(e) => setPatronymic(e.target.value)}
-                    placeholder="Ata adınızı daxil edin"
-                    required
-                  />
-                </div>
+                {/* Ata adı sahəsi silindi */}
               </div>
             </div>
 
-            {/* Professional Information Section */}
-            <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+            {/* Professional Information Section - Tamamilə silindi */}
+            {/* <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Peşəkar Məlumatlar
               </h3>
@@ -217,7 +209,7 @@ const EditUser: React.FC = () => {
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Role and Faculty Section */}
             <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
@@ -258,7 +250,7 @@ const EditUser: React.FC = () => {
                     value={facultyId || ''}
                     onChange={(e) => setFacultyId(Number(e.target.value) || null)}
                     disabled={allRoles.find(role => role.id === roleId)?.name === 'admin' ||
-                      allRoles.find(role => role.id === roleId)?.name === 'SuperAdmin'}
+                              allRoles.find(role => role.id === roleId)?.name === 'SuperAdmin'}
                   >
                     <option value="">Fakültə seçin</option>
                     {faculties.map((faculty) => (
@@ -272,7 +264,7 @@ const EditUser: React.FC = () => {
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Admin və SuperAdmin üçün fakültə seçimi tələb olunmur
                       </p>
-                    )}
+                  )}
                 </div>
               </div>
             </div>
@@ -304,7 +296,7 @@ const EditUser: React.FC = () => {
               <button
                 type="submit"
                 className={`flex-1 sm:flex-none px-8 py-3 rounded-lg font-medium transition-all duration-200 ${!isLoading
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5' // Sadə rəng dəyişikliyi
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
                   }`}
                 disabled={isLoading}

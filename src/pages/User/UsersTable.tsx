@@ -15,6 +15,7 @@ import useSweetAlert from '../../hooks/useSweetAlert';
 interface User {
   id: number;
   name: string;
+  surname?: string;
   email: string;
   roles: { [key: string]: number };
   faculty?: { id: number; name: string };
@@ -28,17 +29,12 @@ interface Role {
 
 const UserTable: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedRole, setSelectedRole] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
-  const [selectedRole, setSelectedRole] = useState(searchParams.get('role') || '');
-  const [inputSearchTerm, setInputSearchTerm] = useState(searchTerm);
+  const [loadedRoles, setLoadedRoles] = useState(false); // Rolların yüklənib-yüklənmədiyini izləmək üçün yeni state
 
   const profile = useProfile();
   const hasDeletePermission = usePermissions('delete_user');
@@ -49,15 +45,37 @@ const UserTable: React.FC = () => {
 
   const navigate = useNavigate();
 
+  // Rolları yükləmək üçün funksiya, yalnız select elementinə kliklənəndə çağırılacaq
+  const handleRoleSelectFocus = () => {
+    // Əgər rollar artıq yüklənibsə və ya mövcuddursa, yenidən sorğu atmayın
+    if (loadedRoles || roles.length > 0) {
+      return;
+    }
+    // Rolları API-dən yükləyin
+    get('/api/roles')
+      .then((res) => {
+        setRoles(res.data);
+        setLoadedRoles(true); // Rolların yükləndiyini qeyd edin
+      })
+      .catch((error: any) => {
+        const msg =
+          error?.response?.data?.message || error?.message || 'Rollar yüklənmədi';
+        errorAlert('Xəta', msg);
+      });
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await get('/api/users');
-        setUsers(response.data);
-        setFilteredUsers(response.data);
-      } catch (error: any) {
+    // Yalnız istifadəçiləri yükləyin
+    if (users.length > 0 && !loading) { // Əlavə olaraq loading state-ni yoxlayırıq ki, təkrar sorğu atmasın
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    get('/api/users')
+      .then((res) => {
+        setUsers(res.data);
+      })
+      .catch((error: any) => {
         const msg =
           error?.response?.data?.message ||
           error?.message ||
@@ -69,58 +87,28 @@ const UserTable: React.FC = () => {
           text: msg,
           confirmButtonColor: '#2563eb',
         });
-      } finally {
-        setLoading(false);
-      }
-    };
+      })
+      .finally(() => setLoading(false));
+  }, [profile]); // profile dəyişəndə yenidən yükləsin
 
-    const fetchRoles = async () => {
-      try {
-        const response = await get('/api/roles');
-        setRoles(response.data);
-      } catch {
-        // ignore
-      }
-    };
-
-    if (profile) {
-      fetchUsers();
-      fetchRoles();
-    }
-  }, [profile]);
-
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (searchTerm) params.set('search', searchTerm);
-    if (selectedRole) params.set('role', selectedRole);
-    setSearchParams(params, { replace: true });
-  }, [searchTerm, selectedRole, setSearchParams]);
-
-  useEffect(() => {
-    const results = users.filter(
-      (user) =>
-        (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (selectedRole === '' || Object.keys(user.roles).includes(selectedRole)),
-    );
-    setFilteredUsers(results);
-  }, [searchTerm, selectedRole, users]);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setSearchTerm(inputSearchTerm.trim());
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [inputSearchTerm]);
+  // Filtered users local olaraq filterlənir
+  const filteredUsers = users.filter((user) => {
+    const fullName = `${user.name} ${user.surname || ''}`.toLowerCase();
+    const email = user.email.toLowerCase();
+    const search = searchTerm.toLowerCase();
+    const matchesSearch =
+      fullName.includes(search) || email.includes(search);
+    const matchesRole =
+      !selectedRole || Object.keys(user.roles).includes(selectedRole);
+    return matchesSearch && matchesRole;
+  });
 
   const handleEdit = (id: number) => {
-    const currentParams = searchParams.toString();
-    navigate(`/users/edit/${id}?returnTo=${encodeURIComponent(`/users?${currentParams}`)}`);
+    navigate(`/users/edit/${id}`);
   };
 
   const handleView = (id: number) => {
-    const currentParams = searchParams.toString();
-    navigate(`/users/view/${id}?returnTo=${encodeURIComponent(`/users?${currentParams}`)}`);
+    navigate(`/users/view/${id}`);
   };
 
   const handleDelete = async (user: User) => {
@@ -142,27 +130,8 @@ const UserTable: React.FC = () => {
     }
   };
 
-  const openModal = (user: User) => {
-    setSelectedUser(user);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setSelectedUser(null);
-    setIsModalOpen(false);
-  };
-
   const handleAddNewUser = () => {
-    const currentParams = searchParams.toString();
-    navigate(`/users/add?returnTo=${encodeURIComponent(`/users?${currentParams}`)}`);
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputSearchTerm(e.target.value);
-  };
-
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedRole(e.target.value);
+    navigate(`/users/add`);
   };
 
   if (!profile) {
@@ -198,18 +167,18 @@ const UserTable: React.FC = () => {
 
   return (
     <div className="space-y-6">
-        <Breadcrumb pageName="İstifadəçilər" />
-        {hasAddPermission && (
-         <div className='flex justify-end mb-4'>
-           <button
+      <Breadcrumb pageName="İstifadəçilər" />
+      {hasAddPermission && (
+        <div className='flex justify-end mb-4'>
+          <button
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
             onClick={handleAddNewUser}
           >
             <FaUserPlus className="w-4 h-4" />
             Yeni İstifadəçi
           </button>
-         </div>
-        )}
+        </div>
+      )}
 
       {/* Search & Filter */}
       <div className="flex flex-col gap-2 mb-2">
@@ -219,10 +188,10 @@ const UserTable: React.FC = () => {
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Ad və ya emailə görə axtarın..."
+                placeholder="Ad, soyad və ya emailə görə axtarın..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 transition-all text-gray-700"
-                value={inputSearchTerm}
-                onChange={handleSearchChange}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="relative min-w-[180px]">
@@ -230,7 +199,8 @@ const UserTable: React.FC = () => {
               <select
                 className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 transition-all text-gray-700"
                 value={selectedRole}
-                onChange={handleRoleChange}
+                onChange={e => setSelectedRole(e.target.value)}
+                onFocus={handleRoleSelectFocus} // Rolların yüklənməsi üçün onFocus istifadə olunur
               >
                 <option value="">Bütün rollar</option>
                 {roles.map((role) => (
@@ -251,6 +221,7 @@ const UserTable: React.FC = () => {
             <tr className="bg-gray-50">
               <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">#</th>
               <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">Ad</th>
+              <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">Soyad</th>
               <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">Email</th>
               <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">Rollar</th>
               <th className="py-4 px-6 border-b text-center font-semibold text-gray-700">Əməliyyatlar</th>
@@ -259,13 +230,14 @@ const UserTable: React.FC = () => {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-8 text-gray-500">İstifadəçi tapılmadı</td>
+                <td colSpan={6} className="text-center py-8 text-gray-500">İstifadəçi tapılmadı</td>
               </tr>
             ) : (
               filteredUsers.map((user, idx) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition">
                   <td className="py-3 px-6 border-b">{idx + 1}</td>
                   <td className="py-3 px-6 border-b">{user.name}</td>
+                  <td className="py-3 px-6 border-b">{user.surname || ''}</td>
                   <td className="py-3 px-6 border-b">{user.email}</td>
                   <td className="py-3 px-6 border-b">
                     <div className="flex flex-wrap gap-1">
@@ -331,7 +303,7 @@ const UserTable: React.FC = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-base text-gray-900 truncate">
-                    {user.name}
+                    {user.name} {user.surname || ''}
                   </h3>
                   <p className="text-gray-600 truncate text-sm">
                     {user.email}
@@ -358,7 +330,7 @@ const UserTable: React.FC = () => {
                 {hasDeletePermission && (
                   <button
                     className="bg-red-100 hover:bg-red-200 text-red-600 p-1.5 rounded transition-colors"
-                    onClick={() => openModal(user)}
+                    onClick={() => handleDelete(user)}
                   >
                     <AiOutlineDelete className="w-4 h-4" />
                   </button>

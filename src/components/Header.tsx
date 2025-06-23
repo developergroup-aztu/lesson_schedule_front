@@ -63,7 +63,7 @@ const Header: React.FC<HeaderProps> = ({ onAddLesson }) => {
           <div className="flex items-center gap-4">
             <button
               onClick={onAddLesson} // This calls the prop function
-              className="hidden sm:flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-br from-blue-300 to-blue-500 text-white font-semibold shadow-md hover:from-blue-400 hover:to-blue-600 transition-all duration-300 transform hover:-translate-y-0.5"
+              className="hidden sm:flex items-center gap-2 px-5 bg-blue-600 hover:bg-blue-700 py-2 rounded-xl   text-white font-semibold shadow-md  transition-all duration-300 transform hover:-translate-y-0.5"
             >
               <span className="text-lg">+</span> Dərs əlavə et
             </button>

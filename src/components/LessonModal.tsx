@@ -253,6 +253,9 @@ const LessonModal: React.FC<LessonModalProps> = ({
     professors: false,
   });
 
+  // Hazırda hansı qrup üçün subjects yükləndiyi
+  const [currentSubjectsGroupId, setCurrentSubjectsGroupId] = useState<string | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { successAlert, errorAlert } = useSweetAlert();
@@ -300,48 +303,200 @@ const LessonModal: React.FC<LessonModalProps> = ({
     }
   }, [isOpen]);
 
-  // Edit mode-da modal açılan anda bütün dataları yüklə
+  // Modal açılanda/bağlananda state-ləri sıfırla
+  useEffect(() => {
+    if (!isOpen) {
+      // Modal bağlananda bütün data-ları və cache-i təmizlə
+      setGroups([]);
+      setHours([]);
+      setSubjects([]);
+      setRooms([]);
+      setLessonTypes([]);
+      setWeekTypes([]);
+      setProfessors([]);
+
+      setLoadedData({
+        groups: false,
+        hours: false,
+        subjects: false,
+        rooms: false,
+        lessonTypes: false,
+        weekTypes: false,
+        professors: false,
+      });
+
+      setCurrentSubjectsGroupId(null);
+      setErrors({});
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (!facultyId || !isOpen) return;
 
-    // Yalnız edit mode-da modal açılan anda bütün dataları yüklə
-    if (modalData.mode === 'edit' && modalData.lesson) {
+    const shouldPreloadAllData = () => {
+      // 1. Edit mode
+      if (modalData.mode === 'edit' && modalData.lesson) {
+        return true;
+      }
+
+      // 2. Cell mode və ya əsas məlumatlar dolu gələndə
+      if (modalData.groupId && modalData.dayId && modalData.hourId) {
+        return true;
+      }
+
+      // 3. Week type də varsa (tam dolu hal)
+      if (modalData.groupId && modalData.dayId && modalData.hourId && modalData.weekTypeId) {
+        return true;
+      }
+
+      return false;
+    };
+
+    if (shouldPreloadAllData()) {
       const fetchAllData = async () => {
         try {
-          const [
-            groupsRes,
-            hoursRes,
-            lessonTypesRes,
-            weekTypesRes,
-            professorsRes,
-            roomsRes,
-          ] = await Promise.all([
-            get(`/api/groups?faculty_id=${facultyId}`),
-            get('/api/hours'),
-            get('/api/lesson-types'),
-            get('/api/week-types'),
-            get('/api/professors'),
-            get('/api/rooms'),
-          ]);
+          const promises = [];
+          const isEditMode = modalData.mode === 'edit' && modalData.lesson;
+          const isCellMode = modalData.groupId && modalData.dayId && modalData.hourId && modalData.mode !== 'edit';
 
-          setGroups(groupsRes.data || []);
-          setHours(hoursRes.data || []);
-          setLessonTypes(lessonTypesRes.data || []);
-          setWeekTypes(weekTypesRes.data || []);
-          setProfessors(professorsRes.data || []);
-          setRooms(roomsRes.data || []);
-          setSubjects(mockScheduleData.subjects || []);
+          if (isEditMode) {
+            // Edit mode-da hər şeyi yüklə
+            if (!loadedData.groups) {
+              promises.push(
+                get(`/api/groups?faculty_id=${facultyId}`)
+                  .then(res => {
+                    setGroups(res.data || []);
+                    setLoadedData(prev => ({ ...prev, groups: true }));
+                  })
+              );
+            }
 
-          // Bütün dataların yükləndiyi qeyd et
-          setLoadedData({
-            groups: true,
-            hours: true,
-            subjects: true,
-            rooms: true,
-            lessonTypes: true,
-            weekTypes: true,
-            professors: true,
-          });
+            if (!loadedData.hours) {
+              promises.push(
+                get('/api/hours')
+                  .then(res => {
+                    setHours(res.data || []);
+                    setLoadedData(prev => ({ ...prev, hours: true }));
+                  })
+              );
+            }
+
+            if (!loadedData.lessonTypes) {
+              promises.push(
+                get('/api/lesson-types')
+                  .then(res => {
+                    setLessonTypes(res.data || []);
+                    setLoadedData(prev => ({ ...prev, lessonTypes: true }));
+                  })
+              );
+            }
+
+            if (!loadedData.weekTypes) {
+              promises.push(
+                get('/api/week-types')
+                  .then(res => {
+                    setWeekTypes(res.data || []);
+                    setLoadedData(prev => ({ ...prev, weekTypes: true }));
+                  })
+              );
+            }
+
+            if (!loadedData.professors) {
+              promises.push(
+                get('/api/professors')
+                  .then(res => {
+                    setProfessors(res.data || []);
+                    setLoadedData(prev => ({ ...prev, professors: true }));
+                  })
+              );
+            }
+
+            if (!loadedData.rooms) {
+              promises.push(
+                get('/api/rooms')
+                  .then(res => {
+                    setRooms(res.data || []);
+                    setLoadedData(prev => ({ ...prev, rooms: true }));
+                  })
+              );
+            }
+
+            // Edit mode-da subjects-i də yüklə
+            if (modalData.groupId) {
+              promises.push(
+                get(`/api/groups/${modalData.groupId}/lectures`)
+                  .then(res => {
+                    let subjectsData = [];
+                    if (res.data && Array.isArray(res.data)) {
+                      subjectsData = res.data;
+                    } else if (res.data && res.data.data && Array.isArray(res.data.data)) {
+                      subjectsData = res.data.data;
+                    }
+                    setSubjects(subjectsData);
+                    setCurrentSubjectsGroupId(modalData.groupId.toString());
+                    setLoadedData(prev => ({ ...prev, subjects: true }));
+                  })
+              );
+            }
+          } else if (isCellMode) {
+            // Cell mode-da əsas məlumatları yüklə
+            if (!loadedData.groups) {
+              promises.push(
+                get(`/api/groups?faculty_id=${facultyId}`)
+                  .then(res => {
+                    setGroups(res.data || []);
+                    setLoadedData(prev => ({ ...prev, groups: true }));
+                  })
+              );
+            }
+
+            if (!loadedData.hours) {
+              promises.push(
+                get('/api/hours')
+                  .then(res => {
+                    setHours(res.data || []);
+                    setLoadedData(prev => ({ ...prev, hours: true }));
+                  })
+              );
+            }
+
+            if (!loadedData.weekTypes) {
+              promises.push(
+                get('/api/week-types')
+                  .then(res => {
+                    setWeekTypes(res.data || []);
+                    setLoadedData(prev => ({ ...prev, weekTypes: true }));
+                  })
+              );
+            }
+
+            // Cell mode-da da dərslər yüklənsin (əgər groupId mövcuddursa)
+            if (modalData.groupId) {
+              promises.push(
+                get(`/api/groups/${modalData.groupId}/lectures`)
+                  .then(res => {
+                    let subjectsData = [];
+                    if (res.data && Array.isArray(res.data)) {
+                      subjectsData = res.data;
+                    } else if (res.data && res.data.data && Array.isArray(res.data.data)) {
+                      subjectsData = res.data.data;
+                    }
+                    setSubjects(subjectsData);
+                    setCurrentSubjectsGroupId(modalData.groupId.toString());
+                    setLoadedData(prev => ({ ...prev, subjects: true }));
+                  })
+                  .catch(error => {
+                    console.error('Error loading subjects in cell mode:', error);
+                    setSubjects([]);
+                    setCurrentSubjectsGroupId(null);
+                  })
+              );
+            }
+          }
+
+          // Bütün promise-ları gözlə
+          await Promise.all(promises);
+
         } catch (error) {
           console.error('Data loading failed:', error);
           errorAlert('Xəta', 'Məlumatlar yüklənərkən xəta baş verdi');
@@ -350,8 +505,28 @@ const LessonModal: React.FC<LessonModalProps> = ({
 
       fetchAllData();
     }
-  }, [facultyId, isOpen, modalData.mode, modalData.lesson]);
+  }, [facultyId, isOpen, modalData]);
 
+  // Lazy loading funksiyalarını yenilə - əgər data artıq yüklənibsə sorğu atmasın
+  const loadGroups = async () => {
+    if (loadedData.groups || loadingStates.groups) return;
+
+    setLoadingStates(prev => ({ ...prev, groups: true }));
+    try {
+      const response = await get(`/api/groups?faculty_id=${facultyId}`);
+      setGroups(response.data || []);
+      setLoadedData(prev => ({ ...prev, groups: true }));
+    } catch (error) {
+      console.error('Groups loading failed:', error);
+    } finally {
+      setLoadingStates(prev => ({ ...prev, groups: false }));
+    }
+  };
+
+  // VirtualSelect-lərdə onOpen prop-larını şərti edin:
+
+  // Helper function
+  const isCellMode = modalData.groupId && modalData.dayId && modalData.hourId && modalData.mode !== 'edit';
   // Edit və ya add üçün formu doldur
   useEffect(() => {
     if (modalData.lesson) {
@@ -381,20 +556,6 @@ const LessonModal: React.FC<LessonModalProps> = ({
   }, [modalData]);
 
   // Lazy loading funksiyaları
-  const loadGroups = async () => {
-    if (loadedData.groups || loadingStates.groups) return;
-
-    setLoadingStates(prev => ({ ...prev, groups: true }));
-    try {
-      const response = await get(`/api/groups?faculty_id=${facultyId}`);
-      setGroups(response.data || []);
-      setLoadedData(prev => ({ ...prev, groups: true }));
-    } catch (error) {
-      console.error('Groups loading failed:', error);
-    } finally {
-      setLoadingStates(prev => ({ ...prev, groups: false }));
-    }
-  };
 
   const loadHours = async () => {
     if (loadedData.hours || loadingStates.hours) return;
@@ -411,14 +572,23 @@ const LessonModal: React.FC<LessonModalProps> = ({
     }
   };
 
+  // Subjects yükləmə funksiyasını təkmilləşdir
   const loadSubjects = async (groupId?: any) => {
     // Əgər groupId verilməyibsə, formData-dan götür
     const gid = groupId || (formData.group_id && formData.group_id.length > 0 ? formData.group_id[0] : null);
 
     console.log('Loading subjects for group:', gid);
+    console.log('Current subjects group ID:', currentSubjectsGroupId);
 
     if (!gid) {
       setSubjects([]);
+      setCurrentSubjectsGroupId(null);
+      return;
+    }
+
+    // Əgər eyni qrup üçün artıq yüklənibsə, təkrar yükləmə
+    if (currentSubjectsGroupId === gid.toString() && !loadingStates.subjects) {
+      console.log('Subjects already loaded for this group');
       return;
     }
 
@@ -438,25 +608,18 @@ const LessonModal: React.FC<LessonModalProps> = ({
       }
 
       setSubjects(subjectsData);
+      setCurrentSubjectsGroupId(gid.toString());
       setLoadedData((prev) => ({ ...prev, subjects: true }));
       console.log('Subjects loaded:', subjectsData);
     } catch (error) {
       console.error('Error loading subjects:', error);
       setSubjects([]);
+      setCurrentSubjectsGroupId(null);
       setLoadedData((prev) => ({ ...prev, subjects: false }));
     } finally {
       setLoadingStates((prev) => ({ ...prev, subjects: false }));
     }
   };
-
-  useEffect(() => {
-    // Edit mode-da və lesson mövcud olduqda
-    if (modalData.lesson && modalData.groupId) {
-      // Digər dataları yüklədikdən sonra fənləri də yüklə
-      loadSubjects(modalData.groupId);
-    }
-  }, [modalData.lesson, modalData.groupId]);
-
 
   const loadLessonTypes = async () => {
     if (loadedData.lessonTypes || loadingStates.lessonTypes) return;
@@ -532,7 +695,7 @@ const LessonModal: React.FC<LessonModalProps> = ({
       newErrors.hour_id = 'Saat seçilməlidir';
     }
     if (!formData.lesson_id) {
-      newErrors.lesson_id = 'Fənn seçilməlidir';
+      newErrors.lesson_id = 'Dərs seçilməlidir';
     }
     if (!formData.lesson_type_id) {
       newErrors.lesson_type_id = 'Dərs tipi seçilməlidir';
@@ -551,7 +714,7 @@ const LessonModal: React.FC<LessonModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Field dəyişəndə
+  // Field dəyişəndə - TƏMİZLƏNMİŞ VERSİYA
   const handleFieldChange = (value: any, { name }: { name: string }) => {
     setFormData((prev: any) => {
       const newFormData = {
@@ -559,20 +722,23 @@ const LessonModal: React.FC<LessonModalProps> = ({
         [name]: value,
       };
 
-      // Əgər qrup dəyişibsə, lesson_id-ni sıfırla və fənləri yüklə
+      // Əgər qrup dəyişibsə
       if (name === 'group_id' && value) {
         // Array-dən first element-i götür
         const groupId = Array.isArray(value) ? value[0] : value;
 
         if (groupId) {
-          // Subject-i sıfırla
+          // Əvvəlki seçilmiş dərsi təmizlə
           newFormData.lesson_id = '';
 
-          // Fənləri yüklə
-          loadSubjects(groupId);
-
-          // Subjects loaded state-ni false et ki, yenidən yüklənsin
+          // Subjects-i təmizlə və yeni qrup üçün yüklə
+          setSubjects([]);
+          setCurrentSubjectsGroupId(null);
           setLoadedData(prev => ({ ...prev, subjects: false }));
+
+          // Yeni qrup üçün fənləri yüklə
+          console.log('Group changed, loading subjects for:', groupId);
+          loadSubjects(groupId);
         }
       }
 
@@ -678,34 +844,22 @@ const LessonModal: React.FC<LessonModalProps> = ({
                   Qrup <span className="text-red-500">*</span>
                 </label>
 
-<VirtualSelect
-  value={formData.group_id && formData.group_id.length > 0 ? formData.group_id[0] : ''}
-  onChange={(value) => handleFieldChange([value], { name: 'group_id' })}
-  name="group_id"
-  options={groups.map((group) => ({
-    id: group.id || group.group_id,
-    name: group.name || group.group_name,
-  }))}
-  required
-  error={!!errors.group_id}
-  placeholder="Qrup seçin"
-  // Cell modunu tanımaq üçün alternativ yollar:
-
-// Variant 1: modalData.mode və mode prop-larını yoxla
-disabled={(modalData.mode === 'cell' || modalData.mode === 'edit' || mode === 'cell') && !!formData.group_id && formData.group_id.length > 0}
-
-// Variant 2: modalData obyektində başqa fieldləri yoxla
-disabled={(modalData.mode === 'edit' || (modalData.groupId && modalData.dayId && modalData.hourId && modalData.mode !== 'add')) && !!formData.group_id && formData.group_id.length > 0}
-
-// Variant 3: Yalnız add modunda enable et (ən təhlükəsiz)
-disabled={modalData.mode !== 'add' && !!formData.group_id && formData.group_id.length > 0}
-
-// Variant 4: modalData.lesson mövcudluğunu yoxla (edit üçün)
-disabled={(modalData.lesson || modalData.mode === 'edit') && !!formData.group_id && formData.group_id.length > 0}
-  onOpen={loadGroups}
-  isLoading={loadingStates.groups}
-/>
-
+                <VirtualSelect
+                  value={formData.group_id && formData.group_id.length > 0 ? formData.group_id[0] : ''}
+                  onChange={(value) => handleFieldChange([value], { name: 'group_id' })}
+                  name="group_id"
+                  options={groups.map((group) => ({
+                    id: group.id || group.group_id,
+                    name: group.name || group.group_name,
+                  }))}
+                  required
+                  error={!!errors.group_id}
+                  placeholder="Qrup seçin"
+                  disabled={modalData.mode !== 'add' && !!formData.group_id && formData.group_id.length > 0}
+                  // Yalnız data yüklənməmişsə sorğu at
+                  onOpen={!loadedData.groups ? loadGroups : undefined}
+                  isLoading={loadingStates.groups}
+                />
                 {errors.group_id && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.group_id}
@@ -752,9 +906,11 @@ disabled={(modalData.lesson || modalData.mode === 'edit') && !!formData.group_id
                   required
                   error={!!errors.hour_id}
                   placeholder="Saat seçin"
-                  onOpen={loadHours}
+                  // Yalnız data yüklənməmişsə sorğu at
+                  onOpen={!loadedData.hours ? loadHours : undefined}
                   isLoading={loadingStates.hours}
                 />
+
                 {errors.hour_id && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.hour_id}
@@ -763,10 +919,10 @@ disabled={(modalData.lesson || modalData.mode === 'edit') && !!formData.group_id
               </div>
             </div>
 
-            {/* Fənn */}
+            {/* Dərs */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fənn <span className="text-red-500">*</span>
+                Dərs <span className="text-red-500">*</span>
               </label>
               <VirtualSelect
                 value={formData.lesson_id}
@@ -785,6 +941,8 @@ disabled={(modalData.lesson || modalData.mode === 'edit') && !!formData.group_id
                 }
                 disabled={!formData.group_id || formData.group_id.length === 0}
                 searchPlaceholder="Fənn axtarın..."
+                // Fənn üçün həmişə undefined, çünki qrup dəyişəndə avtomatik yüklənir
+                onOpen={undefined}
                 isLoading={loadingStates.subjects}
               />
               {errors.lesson_id && (
@@ -868,9 +1026,10 @@ disabled={(modalData.lesson || modalData.mode === 'edit') && !!formData.group_id
                   placeholder="Müəllim seçin"
                   searchPlaceholder="Müəllim axtarın..."
                   dropdownDirection="top"
-                  onOpen={loadProfessors}
+                  onOpen={!loadedData.professors ? loadProfessors : undefined}
                   isLoading={loadingStates.professors}
                 />
+
                 {errors.teacher_code && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.teacher_code}
@@ -895,7 +1054,7 @@ disabled={(modalData.lesson || modalData.mode === 'edit') && !!formData.group_id
                     placeholder="Otaq seçin"
                     searchPlaceholder="Otaq axtarın..."
                     dropdownDirection="top"
-                    onOpen={loadRooms}
+                    onOpen={!loadedData.rooms ? loadRooms : undefined}
                     isLoading={loadingStates.rooms}
                   />
                   {errors.room_id && (
