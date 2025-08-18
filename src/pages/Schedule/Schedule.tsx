@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import Header from '../../components/Header';
 import ScheduleTable from '../../components/ScheduleTable/ScheduleTable';
-import LessonModal from '../../components/LessonModal';
+import LessonModal from '../../components/ScheduleModal/LessonModal';
 import ContextMenu from '../../components/ContextMenu';
-import { useSchedule } from '../../Context/ScheduleContext';
+import { useSchedule } from '../../context/ScheduleContext';
+import EditLessonModal from '../../components/ScheduleModal/EditLessonModal';
 import {
   Calendar,
   BookOpen,
@@ -20,12 +21,16 @@ function Schedule() {
   const [modalData, setModalData] = useState({
     isOpen: false,
     groupId: null,
+    groupName: null, // Added for group name
     dayId: null,
+    dayName: null, // Added for day name
     hourId: null,
+    hourName: null, // Added for hour name
     lessonIndex: null,
     lesson: null,
     mode: 'add',
     weekTypeId: null,
+    schedule_group_id: null, // Added for schedule group ID
   });
 
   const [contextMenu, setContextMenu] = useState({
@@ -95,15 +100,37 @@ function Schedule() {
     hourId = null,
     weekTypeId = 1,
   ) => {
+    let groupName = null;
+    let dayName = null;
+    let hourName = null;
+
+    if (groupId) {
+      const group = scheduleData.groups.find((g) => g.group_id === groupId);
+      groupName = group ? group.group_name : null;
+
+      if (dayId !== null && group?.days[dayId]) {
+        dayName = group.days[dayId].day_name;
+      }
+
+      if (hourId !== null && group?.days[dayId]?.hours) {
+        const hour = group.days[dayId].hours.find((h) => h.hour_id === hourId);
+        hourName = hour ? hour.hour_value : null;
+      }
+    }
+
     setModalData({
       isOpen: true,
       groupId,
+      groupName, // Pass group name
       dayId,
+      dayName, // Pass day name
       hourId,
+      hourName, // Pass hour name
       lessonIndex: null,
       lesson: null,
       weekTypeId,
       mode: 'add',
+      schedule_group_id: null, // Ensure it's null for add mode
     });
   };
 
@@ -119,15 +146,23 @@ function Schedule() {
     const hour = day?.hours.find((h) => h.hour_id === hourId);
     const lesson = hour?.lessons[lessonIndex] || null;
 
+    const groupName = group ? group.group_name : null;
+    const dayName = day ? day.day_name : null;
+    const hourName = hour ? hour.hour_value : null;
+
     setModalData({
       isOpen: true,
       groupId,
+      groupName, // Pass group name
       dayId,
+      dayName, // Pass day name
       hourId,
+      hourName, // Pass hour name
       lessonIndex,
       lesson,
       weekTypeId,
-      mode: 'edit',
+      mode: 'edit', // Set mode to 'edit'
+      schedule_group_id: lesson?.schedule_group_id || null, // <--- HERE'S THE CHANGE
     });
   };
 
@@ -222,8 +257,8 @@ function Schedule() {
           <div className="relative px-4 sm:px-8 pb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex flex-col sm:flex-row items-stretch gap-4 sm:gap-8 w-full">
-                <div className="flex items-center gap-3 bg-white/40 backdrop-blur-sm rounded-2xl px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
-                  <div className="p-2 bg-gradient-to-br from-blue-300 to-blue-400 rounded-xl shadow-md">
+                <div className="flex items-center gap-3 bg-white/40 backdrop-blur-sm rounded-lg px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
+                  <div className="p-2 bg-blue-400 rounded-lg ">
                     <Calendar className="w-5 h-5 text-blue-800" />
                   </div>
                   <div>
@@ -236,8 +271,8 @@ function Schedule() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 bg-white/40 backdrop-blur-md rounded-2xl px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
-                  <div className="p-2 bg-gradient-to-br from-emerald-300 to-teal-400 rounded-xl shadow-md">
+                <div className="flex items-center gap-3 bg-white/40 backdrop-blur-md rounded-lg px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
+                  <div className="p-2 bg-teal-400 rounded-lg shadow-md">
                     <Users className="w-5 h-5 text-emerald-800" />
                   </div>
                   <div>
@@ -250,8 +285,8 @@ function Schedule() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 bg-white/40 backdrop-blur-md rounded-2xl px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
-                  <div className="p-2 bg-gradient-to-br from-amber-300 to-orange-400 rounded-xl shadow-md">
+                <div className="flex items-center gap-3 bg-white/40 backdrop-blur-md rounded-lg px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
+                  <div className="p-2 bg-orange-400 rounded-lg">
                     <BookOpen className="w-5 h-5 text-amber-800" />
                   </div>
                   <div>
@@ -264,11 +299,11 @@ function Schedule() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 bg-white/40 backdrop-blur-md rounded-2xl px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
+                <div className="flex items-center gap-3 bg-white/40 backdrop-blur-md rounded-lg px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
                   <div
-                    className={`p-2 rounded-xl shadow-md ${currentWeekType === 'Üst'
-                        ? 'bg-gradient-to-br from-purple-300 to-violet-400'
-                        : 'bg-gradient-to-br from-rose-300 to-pink-400'
+                    className={`p-2 rounded-lg ${currentWeekType === 'Üst'
+                        ? 'bg-violet-400'
+                        : 'bg-pink-400'
                       }`}
                   >
                     {currentWeekType === 'Üst' ? (
@@ -301,25 +336,37 @@ function Schedule() {
       </div>
 
       {/* Main Content */}
-      <main className="">
-        <ScheduleTable
-          onAddLesson={handleAddLesson}
-          onOpenContextMenu={handleOpenContextMenu}
-          onEditLesson={handleEditLesson}
-        />
-      </main>
+<main className="">
+  <div className="schedule-print-area">
+    <ScheduleTable
+      onAddLesson={handleAddLesson}
+      onOpenContextMenu={handleOpenContextMenu}
+      onEditLesson={handleEditLesson}
+    />
+  </div>
+</main>
 
       {/* Enhanced Floating Action Panel */}
       <div className="fixed bottom-8 left-8 z-30"></div>
 
       {/* Modals and Context Menu */}
-      <LessonModal
-        isOpen={modalData.isOpen}
-        onClose={handleCloseModal}
-        modalData={modalData}
-        mode={modalData.mode}
-        onSuccess={refreshSchedule}
-      />
+      {modalData.mode === 'add' ? (
+        <LessonModal
+          isOpen={modalData.isOpen}
+          onClose={handleCloseModal}
+          modalData={modalData}
+          mode={modalData.mode}
+          onSuccess={refreshSchedule}
+        />
+      ) : (
+        <EditLessonModal
+          isOpen={modalData.isOpen}
+          onClose={handleCloseModal}
+          modalData={modalData}
+          mode={modalData.mode}
+          onSuccess={refreshSchedule}
+        />
+      )}
       <ContextMenu
         isOpen={contextMenu.isOpen}
         position={contextMenu.position}

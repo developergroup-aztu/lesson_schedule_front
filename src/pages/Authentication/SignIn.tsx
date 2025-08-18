@@ -24,7 +24,7 @@ const SignIn: React.FC = () => {
       const response = await post('/api/login', { email, password });
       if (response.data.token) {
         login(response.data.token);
-        navigate('/');
+        navigate('/dashboard');
       } else {
         setError('Giriş uğursuz oldu');
       }

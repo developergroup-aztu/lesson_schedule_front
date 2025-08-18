@@ -15,6 +15,8 @@ interface AuthContextType {
     email: string;
     roles: string[];
     permissions: string[];
+    faculty_id?: number;
+    faculty_name?: string;
   } | null;
   login: (token: string) => Promise<void>;
   logout: () => void;
@@ -33,7 +35,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     email: string;
     roles: string[];
     permissions: string[];
-    faculty_id: number;
+    faculty_id?: number;
     faculty_name?: string;
   } | null>(null);
   const navigate = useNavigate();
@@ -42,15 +44,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const fetchProfile = async () => {
     try {
       const profileData = await getProfile();
+      const userData = profileData.data.userData;
       setUser({
-        name: profileData.data.userData.name,
-        email: profileData.data.userData.email,
-        roles: profileData.data.userData.roles,
-        permissions: profileData.data.userData.permissions,
-        faculty_id: profileData.data.userData.faculty_id,
-        faculty_name: profileData.data.userData.faculty_name,
+        name: userData.name,
+        email: userData.email,
+        roles: userData.roles,
+        permissions: userData.permissions,
+        faculty_id: userData.faculty_id,
+        faculty_name: userData.faculty_name,
       });
       setIsAuthenticated(true);
+
+      // Əgər FacultyAdmin rolundadırsa və route "/"-dursa, schedules-ə yönləndir
+      if (
+        userData.roles?.includes('FacultyAdmin') &&
+        location.pathname === '/dashboard'
+      ) {
+        navigate('/schedules', { replace: true });
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
       setIsAuthenticated(false);
@@ -64,18 +75,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     } else {
       setIsAuthenticated(false);
     }
+    // eslint-disable-next-line
   }, []);
 
-  const login = async (token: string) => {
-    localStorage.setItem('token', token);
-    await fetchProfile();
-    navigate('/');
-  };
+const login = async (token: string) => {
+  localStorage.setItem('token', token);
+  const profileData = await getProfile();
+  const userData = profileData.data.userData;
+  setUser({
+    name: userData.name,
+    email: userData.email,
+    roles: userData.roles,
+    permissions: userData.permissions,
+    faculty_id: userData.faculty_id,
+    faculty_name: userData.faculty_name,
+  });
+  setIsAuthenticated(true);
+
+  // FacultyAdmin isə /schedules-ə yönləndir, yoxsa /
+  if (userData.roles?.includes('FacultyAdmin')) {
+    navigate('/schedules', { replace: true });
+  } else {
+    navigate('/dashboard', { replace: true });
+  }
+};
 
   const logout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
-    setUser(null);2
+    setUser(null);
     navigate('/signin');
   };
 

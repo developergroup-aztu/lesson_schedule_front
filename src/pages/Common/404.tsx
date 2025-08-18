@@ -11,7 +11,7 @@ const NotFound = () => {
           Axtardığınız səhifə mövcud deyil.
         </p>
         <Link
-          to="/"
+          to="/dashboard"
           className="inline-flex items-center rounded-lg bg-primary px-6 py-3 text-white transition hover:bg-opacity-90"
         >
           Ana səhifəyə qayıt

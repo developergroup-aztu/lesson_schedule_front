@@ -5,19 +5,18 @@ import { PiEyeLight } from 'react-icons/pi';
 import { ClipLoader } from 'react-spinners';
 import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa6';
 import Breadcrumb from '../../components/Breadcrumbs/Breadcrumb';
-import { useDebounce } from '../../hooks/useDebounce';
-import useSweetAlert from '../../hooks/useSweetAlert'; // Import the hook
+import { useDebounce } from '../../hooks/useDebounce'; // Assuming you have this hook
 
-interface Room {
+interface Teacher {
   id: number;
   name: string;
-  room_capacity: number;
-  corp_id: number;
-  types: string;
+  surname: string;
+  fin_code: string;
+  lesson_count: number;
 }
 
-const Rooms: React.FC = () => {
-  const [rooms, setRooms] = useState<Room[]>([]);
+const Teachers: React.FC = () => {
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,30 +28,27 @@ const Rooms: React.FC = () => {
   const [sortCol, setSortCol] = useState<string>('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  // New: Search term for the global search input
+  // Search term for global search input (only this one needed)
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Initialize the SweetAlert hook
-  const { errorAlert } = useSweetAlert();
-
-  // Sortable columns (these are now also the implicitly searchable columns for global search)
+  // Sortable columns (these are now also the searchable columns for global search)
   const sortableColumns = [
-    { key: 'corp_id', label: 'Korpus' },
-    { key: 'name', label: 'Otaq adı' },
-    { key: 'room_capacity', label: 'Tutum' },
-    { key: 'types', label: 'Tip' },
+    { key: 'name', label: 'Adı' },
+    { key: 'surname', label: 'Soyadı' },
+    { key: 'fin_code', label: 'FIN kod' },
+    { key: 'lesson_count', label: 'Dərs sayı' },
   ];
 
-  // Initialize states from URL params
+  // Initialize states from URL params on component mount
   useEffect(() => {
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
     const sortColParam = searchParams.get('sort_col') || '';
     const sortDirParam = searchParams.get('sort_dir') || 'asc';
-    const searchTermParam = searchParams.get('search') || '';
+    const searchTermParam = searchParams.get('search') || ''; // Only get search term
 
     setCurrentPage(pageParam > 0 ? pageParam : 1);
     setSortCol(sortColParam);
@@ -60,7 +56,7 @@ const Rooms: React.FC = () => {
     setSearchTerm(searchTermParam);
   }, [searchParams]);
 
-  // Update URL params
+  // Update URL parameters
   const updateUrlParams = () => {
     const newParams = new URLSearchParams();
 
@@ -73,15 +69,17 @@ const Rooms: React.FC = () => {
     setSearchParams(newParams);
   };
 
-  // Fetch rooms with all parameters (pagination, sorting, global searching)
+  // Fetch teachers with all parameters (pagination, sorting, global searching)
   useEffect(() => {
     let isMounted = true;
-    const fetchRooms = async () => {
+    const fetchTeachers = async () => {
       setLoading(true);
+      setError(null);
 
       try {
-        let url = `/api/rooms?page=${currentPage}`;
+        let url = `/api/teachers?page=${currentPage}`;
 
+        // Add sorting parameters
         if (sortCol && sortDir) {
           url += `&sort_col=${sortCol}&sort_dir=${sortDir}`;
         }
@@ -96,35 +94,34 @@ const Rooms: React.FC = () => {
         if (!isMounted) return;
 
         if (res.data && Array.isArray(res.data.data)) {
-          setRooms(res.data.data);
+          setTeachers(res.data.data);
           setCurrentPage(res.data.current_page || 1);
           setLastPage(res.data.last_page || 1);
           setTotal(res.data.total || 0);
           setPerPage(res.data.per_page || 10);
         } else {
-          setRooms([]);
-          // Display the error using SweetAlert
-          errorAlert('Xəta', 'Serverdən düzgün otaq məlumatı gəlmədi.');
+          setTeachers([]);
+          setError('Serverdən düzgün müəllim məlumatı gəlmədi.');
         }
 
         updateUrlParams(); // Update URL after fetching data
       } catch (err: any) {
         if (!isMounted) return;
-        const msg = err?.response?.data?.message || err?.message || 'Otaqlar yüklənmədi';
-        // Display the error using SweetAlert instead of setting a state
-        errorAlert('Xəta', msg);
-        setRooms([]);
+        const msg =
+          err?.response?.data?.message || err?.message || 'Müəllimlər yüklənmədi';
+        setError(msg);
+        setTeachers([]);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    fetchRooms();
+    fetchTeachers();
 
     return () => {
       isMounted = false;
     };
-  }, [currentPage, sortCol, sortDir, debouncedSearchTerm]);
+  }, [currentPage, sortCol, sortDir, debouncedSearchTerm]); // Dependencies for re-fetching data
 
   // Handle header click for sorting
   const handleSort = (column: string) => {
@@ -134,7 +131,7 @@ const Rooms: React.FC = () => {
       setSortCol(column);
       setSortDir('asc');
     }
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to the first page when sorting changes
   };
 
   // Handle page change
@@ -144,7 +141,7 @@ const Rooms: React.FC = () => {
     }
   };
 
-  // Get sort icon
+  // Get sort icon for table headers
   const getSortIcon = (column: string) => {
     if (sortCol !== column) {
       return <FaSort className="w-3 h-3 text-gray-400" />;
@@ -186,11 +183,23 @@ const Rooms: React.FC = () => {
     return pages;
   };
 
+  // Error message display
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-[80vh]">
+        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg">
+          <p className="text-red-600 dark:text-red-400 text-center">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <Breadcrumb pageName="Otaqlar" />
+      {/* Header */}
+      <Breadcrumb pageName="Müəllimlər" />
 
-      {/* Global Search Panel */}
+      {/* Search Panel */}
       <div className="bg-white rounded-lg shadow border border-gray-100 p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2 flex-grow">
@@ -199,10 +208,7 @@ const Rooms: React.FC = () => {
               id="global-search"
               type="text"
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Axtarış edin..."
               className="px-3 py-2 border border-gray-300 outline-none rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
@@ -216,7 +222,7 @@ const Rooms: React.FC = () => {
           <thead>
             <tr className="bg-indigo-50">
               <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">#</th>
-              {sortableColumns.map((col) => (
+              {sortableColumns.map(col => (
                 <th
                   key={col.key}
                   className="py-4 px-6 border-b text-left font-semibold text-gray-700 cursor-pointer hover:bg-indigo-100 transition-colors"
@@ -238,29 +244,27 @@ const Rooms: React.FC = () => {
                   <ClipLoader size={30} color="#3949AB" />
                 </td>
               </tr>
-            ) : rooms.length === 0 ? (
+            ) : teachers.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-8 text-gray-500">
-                  {debouncedSearchTerm ? 'Axtarış nəticəsi tapılmadı' : 'Otaq tapılmadı'}
+                  {debouncedSearchTerm ? 'Axtarış nəticəsi tapılmadı' : 'Müəllim tapılmadı'}
                 </td>
               </tr>
             ) : (
-              rooms.map((room, idx) => (
+              teachers.map((teacher, idx) => (
                 <tr
-                  key={room.id}
+                  key={teacher.id}
                   className={`${idx % 2 === 1 ? 'bg-indigo-50' : 'hover:bg-gray-50'} transition`}
                 >
-                  <td className="py-3 px-6 border-b">
-                    {(currentPage - 1) * perPage + idx + 1}
-                  </td>
-                  <td className="py-3 px-6 border-b">{room.corp_id}</td>
-                  <td className="py-3 px-6 border-b">{room.name}</td>
-                  <td className="py-3 px-6 border-b">{room.room_capacity}</td>
-                  <td className="py-3 px-6 border-b">{room.types}</td>
+                  <td className="py-3 px-6 border-b">{(currentPage - 1) * perPage + idx + 1}</td>
+                  <td className="py-3 px-6 border-b">{teacher.name}</td>
+                  <td className="py-3 px-6 border-b">{teacher.surname}</td>
+                  <td className="py-3 px-6 border-b">{teacher.fin_code}</td>
+                  <td className="py-3 px-6 border-b">{teacher.lesson_count}</td>
                   <td className="py-3 px-6 border-b text-center">
                     <button
                       className="bg-yellow-100 hover:bg-yellow-200 text-yellow-600 p-1.5 rounded-lg transition-colors"
-                      onClick={() => navigate(`/rooms/${room.id}`)}
+                      onClick={() => navigate(`/teachers/${teacher.id}`)}
                       title="Cədvələ bax"
                     >
                       <PiEyeLight className="w-5 h-5" />
@@ -272,7 +276,6 @@ const Rooms: React.FC = () => {
           </tbody>
         </table>
       </div>
-
       {/* Pagination Controls */}
       {lastPage > 1 && (
         <div className="flex justify-center pt-4">
@@ -318,4 +321,4 @@ const Rooms: React.FC = () => {
   );
 };
 
-export default Rooms;
+export default Teachers;

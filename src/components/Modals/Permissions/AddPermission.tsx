@@ -38,7 +38,7 @@ const AddPermissionModal: React.FC<AddPermissionModalProps> = ({
             Ləğv et
           </button>
           <button
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg"
             onClick={() => onConfirm(name)}
           >
             Əlavə et

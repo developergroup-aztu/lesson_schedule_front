@@ -1,9 +1,10 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useRef } from 'react';
 import { ScheduleData, ScheduleContextType, Lesson } from '../types';
 import { useAuth } from './AuthContext';
 import { get, post, del } from '../api/service'; 
 import { useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import { ClipLoader } from 'react-spinners';
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);
 
@@ -24,6 +25,8 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
   const params = useParams();
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const alertShownRef = useRef(false); // Alert göstərilməsini kontrol etmək üçün
 
   const fetchSchedule = useCallback(async () => {
     let facultyId: number | undefined;
@@ -37,28 +40,104 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
       facultyId = Number((user as any).faculty_id);
     }
 
-    if (!facultyId) return;
+    if (!facultyId) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+    setHasError(false);
+    
     try {
-      const response = await get(`/api/schedules/${facultyId}`);
-      // 3. response.data.groups yoxdursa, boş array ver
-      setScheduleData({
-        ...response.data,
-        groups: response.data.groups ?? [],
-      });
-    } catch (error) {
+      const response = await get(`/api/faculties/${facultyId}`);
+      
+      // Məlumatı set et
+      if (response?.data) {
+        setScheduleData({
+          ...response.data,
+          groups: response.data.groups ?? [],
+        });
+        
+        // Room message varsa warning göstər (yalnız bir dəfə)
+        if (response.data.room_message && !alertShownRef.current) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Diqqət',
+            text: response.data.room_message,
+            confirmButtonColor: '#2563eb',
+            timer: 4000,
+            timerProgressBar: true
+          });
+          alertShownRef.current = true;
+        }
+      }
+    } catch (error: any) {
+      console.error('Cədvəl yükləmə xətası:', error);
+      setHasError(true);
       setScheduleData(null);
+      
+      // Server error alert göstər
+      const errorMessage = error?.response?.data?.message || 
+                          error?.message || 
+                          'Cədvəl yükləmə zamanı server xətası baş verdi';
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Server Xətası',
+        text: errorMessage,
+        confirmButtonColor: '#2563eb',
+        confirmButtonText: 'Yenidən cəhd et',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Yenidən cəhd et
+          fetchSchedule();
+        }
+      });
     } finally {
       setLoading(false);
     }
   }, [user, params.id]);
 
   useEffect(() => {
+    // Alert ref-i reset et hər yeni fetch-dən əvvəl
+    alertShownRef.current = false;
     fetchSchedule();
   }, [fetchSchedule]);
 
-  if (loading || !scheduleData) {
-    return <div>Yüklənir...</div>;
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[80vh]">
+        <div className="flex flex-col items-center gap-4">
+          <ClipLoader size={40} color="#3949AB" />
+          <span className="text-gray-600 font-medium">Cədvəl yüklənir...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state - məlumat xarakterli göstəriş
+  if (hasError || !scheduleData) {
+    return (
+      <div className="flex justify-center items-center h-[80vh]">
+        <div className="flex flex-col items-center gap-4 text-center max-w-md">
+          <div className="text-red-500 text-6xl">⚠️</div>
+          <h3 className="text-xl font-semibold text-gray-800">
+            Cədvəl məlumatları tapılmadı
+          </h3>
+          <p className="text-gray-600">
+            Fakultə məlumatları əlçatan deyil və ya server xətası baş verdi. 
+            Zəhmət olmasa bir qədər sonra yenidən cəhd edin.
+          </p>
+          <button
+            onClick={fetchSchedule}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Yenidən yüklə
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const addLesson = (groupId: number, dayId: number, hourId: number, lesson: Lesson) => {
@@ -110,61 +189,62 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     });
   };
 
-const deleteLesson = async (
-  groupId: number,
-  dayId: number,
-  hourId: number,
-  lessonIndex: number
-) => {
-  let schedule_group_id: number | undefined;
-  let deleted = false;
-  setScheduleData(prevData => {
-    if (!prevData) return prevData;
-    const newData = { ...prevData };
-    const groupIndex = newData.groups.findIndex(g => g.group_id === groupId);
-    if (groupIndex === -1) return prevData;
-    const group = newData.groups[groupIndex];
-    if (!group.days[dayId]) return prevData;
-    const day = group.days[dayId];
-    const hourIndex = day.hours.findIndex(h => h.hour_id === hourId);
-    if (hourIndex === -1) return prevData;
-    const hour = day.hours[hourIndex];
-    if (lessonIndex < 0 || lessonIndex >= hour.lessons.length) return prevData;
-    // schedule_group_id-ni tap
-    schedule_group_id = hour.lessons[lessonIndex]?.schedule_group_id;
-    hour.lessons.splice(lessonIndex, 1);
-    if (hour.lessons.length === 0) {
-      day.hours.splice(hourIndex, 1);
-      if (day.hours.length === 0) {
-        delete group.days[dayId];
+  const deleteLesson = async (
+    groupId: number,
+    dayId: number,
+    hourId: number,
+    lessonIndex: number
+  ) => {
+    let schedule_group_id: number | undefined;
+    let deleted = false;
+    setScheduleData(prevData => {
+      if (!prevData) return prevData;
+      const newData = { ...prevData };
+      const groupIndex = newData.groups.findIndex(g => g.group_id === groupId);
+      if (groupIndex === -1) return prevData;
+      const group = newData.groups[groupIndex];
+      if (!group.days[dayId]) return prevData;
+      const day = group.days[dayId];
+      const hourIndex = day.hours.findIndex(h => h.hour_id === hourId);
+      if (hourIndex === -1) return prevData;
+      const hour = day.hours[hourIndex];
+      if (lessonIndex < 0 || lessonIndex >= hour.lessons.length) return prevData;
+      // schedule_group_id-ni tap
+      schedule_group_id = hour.lessons[lessonIndex]?.schedule_group_id;
+      hour.lessons.splice(lessonIndex, 1);
+      if (hour.lessons.length === 0) {
+        day.hours.splice(hourIndex, 1);
+        if (day.hours.length === 0) {
+          delete group.days[dayId];
+        }
       }
-    }
-    deleted = true;
-    return newData;
-  });
+      deleted = true;
+      return newData;
+    });
 
-  if (schedule_group_id && deleted) {
-    try {
-      const res = await del(`/api/schedules/${schedule_group_id}`);
-      if (res?.message || res?.data?.message) {
+    if (schedule_group_id && deleted) {
+      try {
+        const res = await del(`/api/schedules/${schedule_group_id}`);
+        if (res?.message || res?.data?.message) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Uğurlu',
+            text: res.message || res.data.message,
+            confirmButtonColor: '#2563eb',
+          });
+        }
+      } catch (error: any) {
         Swal.fire({
-          icon: 'success',
-          title: 'Uğurlu',
-          text: res.message || res.data.message,
+          icon: 'error',
+          title: 'Xəta',
+          text: error?.response?.data?.message || 'Silinmə zamanı xəta baş verdi.',
           confirmButtonColor: '#2563eb',
         });
+        fetchSchedule(); // Xəta olduqda yenidən yüklə
       }
-    } catch (error: any) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Xəta',
-        text: error?.response?.data?.message || 'Silinmə zamanı xəta baş verdi.',
-        confirmButtonColor: '#2563eb',
-      });
-      fetchSchedule();
     }
-  }
-};
+  };
+
   const toggleBlockStatus = async (
     schedule_id: number,
     schedule_group_id: number,
@@ -199,6 +279,12 @@ const deleteLesson = async (
       });
     } catch (error) {
       console.error('Kilitləmə xətası:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Xəta',
+        text: 'Kilitləmə əməliyyatı zamanı xəta baş verdi',
+        confirmButtonColor: '#2563eb',
+      });
     }
   };
 

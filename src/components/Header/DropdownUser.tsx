@@ -9,7 +9,7 @@ const DropdownUser = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    window.location.href = '/signin';
+    window.location.href = '/';
   };
   const { user } = useAuth();
   return (

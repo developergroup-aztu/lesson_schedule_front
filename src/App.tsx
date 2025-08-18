@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 
+import Wellcome from './pages/Wellcome/Wellcome';
+
 import Loader from './common/Loader';
 import DefaultLayout from './layout/DefaultLayout';
 import { AuthProvider } from './Context/AuthContext';
@@ -30,6 +32,8 @@ import EditRole from './pages/Role Permissions/EditRole';
 import PermissionsTable from './pages/Role Permissions/PermissionsTable';
 
 import Rooms from './pages/Room/Rooms';
+import Teachers from './pages/Teachers/Teachers';
+import TeacherSchedule from './pages/Teachers/TeachersSchedule';
 
 // Schedule Pages
 import Schedule from './pages/Schedule/Schedule';
@@ -57,6 +61,7 @@ function App() {
       ) : (
         <Routes>
           {/* Authentication Routes */}
+          <Route path="/" element={<Wellcome />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-code" element={<VerifyCode />} />
@@ -71,7 +76,7 @@ function App() {
                   <Routes>
                     {/* Common Pages */}
                     <Route path="*" element={<NotFound />} />
-                    <Route index element={<Dashboard />} />
+                    <Route path='/dashboard' element={<Dashboard />} />
                     <Route path="profile" element={<Profile />} />
                     <Route path="forms/form-elements" />
 
@@ -92,6 +97,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
+
                     <Route
                       path="/users/edit/:id"
                       element={
@@ -148,6 +154,22 @@ function App() {
                       element={
                         <ProtectedRoute requiredPermission="view_rooms">
                           <Rooms />
+                        </ProtectedRoute>
+                      }
+                    />
+                     <Route
+                      path="teachers"
+                      element={
+                        <ProtectedRoute requiredPermission="view_teachers">
+                          <Teachers />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/teachers/:id"
+                      element={
+                        <ProtectedRoute requiredPermission="view_teacher_schedule">
+                          <TeacherSchedule />
                         </ProtectedRoute>
                       }
                     />

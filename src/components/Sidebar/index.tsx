@@ -19,9 +19,14 @@ import {
   Home,
   Clock,
   Landmark,
+  UserCheck,
 } from 'lucide-react';
 import Logo from '../../images/Logo.png';
+import { LiaChalkboardTeacherSolid } from "react-icons/lia";
+
 import { useAuth } from '../../Context/AuthContext';
+// Import the usePermissions hook
+import usePermissions from '../../hooks/usePermissions'; 
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -43,11 +48,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
     storedSidebarExpanded === null ? false : storedSidebarExpanded === 'true',
   );
 
-  const { user } = useAuth();
+  const { user } = useAuth(); // You still need user for roles if your permissions depend on them implicitly, but not directly for menu visibility here.
 
-  const isFacultyAdmin = user?.roles.includes('FacultyAdmin');
-  const isAdmin = user?.roles.includes('Admin');
-  const isSuperAdmin = user?.roles.includes('SuperAdmin');
+  // Use the usePermissions hook to get specific permissions
+  const canViewDashboard = usePermissions('view_dashboards');
+  const canViewFaculties = usePermissions('view_faculties');
+  const canViewSchedules = usePermissions('view_schedules'); // Assuming a permission for schedules
+  const canViewRooms = usePermissions('view_rooms');
+  const canViewTeachers = usePermissions('view_teachers');
+  const canViewUsers = usePermissions('view_users');
+  const canViewRoles = usePermissions('view_roles');
+  const canViewPermissions = usePermissions('view_permissions');
 
   // Close on click outside
   useEffect(() => {
@@ -91,50 +102,58 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   }, [collapsed]);
 
   // Menu items structure with icons and paths
+  // Now, 'permission' property directly uses the boolean returned by usePermissions
   const menuItems = [
     {
-      path: '/',
+      path: '/dashboard',
       label: 'Dashboard',
       icon: <LayoutDashboard className="w-5 h-5 " />,
-      permission: !isFacultyAdmin, // FacultyAdmin üçün dashboard gizli
+      permission: canViewDashboard, 
     },
     {
       path: '/faculties',
       label: 'Fakültələr',
       icon: <School className="w-5 h-5" />,
-      permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
+      permission: canViewFaculties, 
     },
     {
       path: '/schedules',
       label: 'Cədvəl',
       icon: <Calendar className="w-5 h-5" />,
-      permission: isFacultyAdmin,
+      permission: canViewSchedules, // Assuming you'll add a 'view_schedules' permission
     },
     {
       path: '/rooms',
       label: 'Otaqlar',
       icon: <Building2 className="w-5 h-5" />,
-      permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
+      permission: canViewRooms, 
+    },
+    {
+      path: '/teachers',
+      label: 'Müəllimlər',
+      icon: <LiaChalkboardTeacherSolid className="w-5 h-5" />,
+      permission: canViewTeachers, 
     },
     {
       path: '/users',
       label: 'İstifadəçilər',
       icon: <Users className="w-5 h-5" />,
-      permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
+      permission: canViewUsers, 
     },
     {
       path: '/roles',
       label: 'Rollar',
       icon: <SquareUser className="w-5 h-5" />,
-      permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
+      permission: canViewRoles, 
     },
     {
       path: '/permissions',
       label: 'İcazələr',
       icon: <Settings className="w-5 h-5" />,
-      permission: !isFacultyAdmin, // FacultyAdmin üçün gizli
+      permission: canViewPermissions, 
     },
   ];
+
   return (
     <aside
       ref={sidebar}
@@ -149,7 +168,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       >
         {!collapsed && (
           <NavLink
-            to="/"
+            to="/dashboard"
             className="flex gap-1 font-bold dark:text-white text-[#0D1F61]"
           >
             <img src={Logo} alt="" className="h-9" />
@@ -161,7 +180,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
         )}
 
         {collapsed && (
-          <NavLink to="/" className="mx-auto">
+          <NavLink to="/dashboard" className="mx-auto">
             <img src={Logo} alt="" className="h-9" />
           </NavLink>
         )}
@@ -198,35 +217,34 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             )}
 
             <ul className="mb-6 flex flex-col gap-1.5">
-             {menuItems.map(
-  (item, index) =>
-    item.permission && (
-      <li key={index}>
-        <NavLink
-          to={item.path}
-          className={`group relative flex items-center gap-2.5 rounded-lg py-2 
+              {menuItems.map(
+                (item, index) =>
+                  item.permission && ( // This line conditionally renders the menu item
+                    <li key={index}>
+                      <NavLink
+                        to={item.path}
+                        className={`group relative flex items-center gap-2.5 rounded-lg py-2 
             ${collapsed ? 'px-2 justify-center' : 'px-4'}
             font-medium duration-300 
-            ease-in-out hover:bg-[#c4d8fa] dark:hover:bg-meta-4 
-            ${
-              item.path === '/'
-                ? pathname === '/'
-                  ? 'bg-[#d4e4ff] dark:bg-meta-4'
-                  : ''
-                : pathname.startsWith(item.path)
-                  ? 'bg-[#d4e4ff] dark:bg-meta-4'
-                  : ''
-            }
+            ease-in-out hover:bg-indigo-700 hover:text-white  dark:hover:bg-meta-4 
+            ${item.path === '/'
+                                ? pathname === '/'
+                                  ? 'bg-indigo-600 dark:bg-meta-4 text-white'
+                                  : ''
+                                : pathname.startsWith(item.path)
+                                  ? 'bg-indigo-600 dark:bg-meta-4 text-white'
+                                  : ''
+                              }
           `}
-        >
-          {item.icon && (
-            <span className={'w-5 h-5'}>{item.icon}</span>
-          )}
-          {!collapsed && <span>{item.label}</span>}
-        </NavLink>
-      </li>
-    ),
-)}
+                      >
+                        {item.icon && (
+                          <span className={'w-5 h-5'}>{item.icon}</span>
+                        )}
+                        {!collapsed && <span>{item.label}</span>}
+                      </NavLink>
+                    </li>
+                  ),
+              )}
             </ul>
           </div>
         </nav>

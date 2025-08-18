@@ -9,6 +9,7 @@ module.exports = {
     fontFamily: {
       satoshi: ['Poppins', 'sans-serif'],
     },
+    safelist: ['print:hidden', 'print:block', 'print:flex'],
     screens: {
       '2xsm': '375px',
       xsm: '425px',

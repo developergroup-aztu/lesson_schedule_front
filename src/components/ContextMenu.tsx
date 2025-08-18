@@ -13,6 +13,7 @@ interface ContextMenuProps {
   lessonIndex: number | null;
   weekTypeId: number | null;
   onEdit: () => void;
+  className?: string; // Add this prop to accept Tailwind classes
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -25,11 +26,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   lessonIndex,
   weekTypeId,
   onEdit,
+  className, // Destructure the className prop
 }) => {
   const { deleteLesson, toggleBlockStatus, scheduleData } = useSchedule();
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Cari dərsi tapmaq üçün funksiya
+  // Function to find the current lesson
   const getCurrentLesson = () => {
     if (
       !scheduleData ||
@@ -50,7 +52,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     return hour.lessons[lessonIndex];
   };
 
-  // Dərsin kilidli olub olmadığını yoxla
+  // Check if the lesson is blocked
   const isLessonBlocked = (): boolean => {
     const lesson = getCurrentLesson();
     return lesson ? lesson.lock_id === 1 : false;
@@ -74,29 +76,30 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   if (!isOpen) return null;
 
   const handleEdit = () => {
-      console.log('Redakte et kliklendi!');
-
+    console.log('Redakte et kliklendi!');
     onEdit();
     onClose();
   };
 
-const handleDelete = async () => {
-  const result = await Swal.fire({
-    title: 'Əminsiniz?',
-    text: 'Bu dərsi silmək istədiyinizə əminsiniz?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Bəli, sil',
-    cancelButtonText: 'Ləğv et',
-  });
-  if (result.isConfirmed) {
-    // Burada deleteLesson çağır
-    await deleteLesson(groupId, dayId, hourId, lessonIndex);
-    onClose();
-  }
-};
+  const handleDelete = async () => {
+    const result = await Swal.fire({
+      title: 'Əminsiniz?',
+      text: 'Bu dərsi silmək istədiyinizə əminsiniz?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Bəli, sil',
+      cancelButtonText: 'Ləğv et',
+       customClass: {
+      container: 'my-swal-zindex', // A custom class for the alert container
+    }
+    });
+    if (result.isConfirmed) {
+      await deleteLesson(groupId, dayId, hourId, lessonIndex);
+      onClose();
+    }
+  };
 
   const handleToggleBlock = () => {
     const lesson = getCurrentLesson();
@@ -104,23 +107,25 @@ const handleDelete = async () => {
       toggleBlockStatus(
         lesson.schedule_id,
         lesson.schedule_group_id,
-        lesson.lock_id === 1 ? 0 : 1 // yeni status
+        lesson.lock_id === 1 ? 0 : 1 // new status
       );
     }
     onClose();
   };
 
+  // Removed zIndex from here. It will now be handled by the className prop.
   const menuStyle: React.CSSProperties = {
     position: 'fixed',
     top: `${position.y}px`,
     left: `${position.x}px`,
-    zIndex: 1000,
+    zIndex: 9999, // Ensure the menu appears above other elements
   };
 
   return (
     <div
       ref={menuRef}
-      className="bg-[#ffffff2e] backdrop-blur-md rounded-md shadow-lg border border-gray-200 py-1 w-48"
+      // Apply the passed className here, along with existing classes
+      className={`bg-[#ffffff2e] backdrop-blur-md rounded-md shadow-lg border border-gray-200 py-1 w-48 ${className}`}
       style={menuStyle}
     >
       <button

@@ -9,52 +9,7 @@ import {
   Building
 } from 'lucide-react';
 import {get} from '../../api/service';
-
-// Fake data
-const fakeData = {
-  faculties: [
-    { id: 1, name: "Engineering", departments: 5, students: 1250 },
-    { id: 2, name: "Medicine", departments: 3, students: 980 },
-    { id: 3, name: "Business", departments: 4, students: 1100 },
-    { id: 4, name: "Science", departments: 6, students: 870 },
-    { id: 5, name: "Arts & Humanities", departments: 5, students: 760 }
-  ],
-  departments : [
-    { id: 1, name: "Computer Science", faculty: "Engineering", students: 300 },
-    { id: 2, name: "Mechanical Engineering", faculty: "Engineering", students: 250 },
-    { id: 3, name: "Medicine", faculty: "Medicine", students: 200 },
-    { id: 4, name: "Business Administration", faculty: "Business", students: 400 },
-    { id: 5, name: "Physics", faculty: "Science", students: 150 },
-  ],
-  groups: [
-    { id: 1, name: "ENG-101", faculty: "Engineering", students: 25 },
-    { id: 2, name: "MED-201", faculty: "Medicine", students: 30 },
-    { id: 3, name: "BUS-301", faculty: "Business", students: 35 },
-    { id: 4, name: "SCI-401", faculty: "Science", students: 28 },
-    { id: 5, name: "ART-501", faculty: "Arts & Humanities", students: 32 }
-  ],
-  subjects: [
-    { id: 1, name: "Calculus", faculty: "Engineering"},
-    { id: 2, name: "Anatomy", faculty: "Medicine"},
-    { id: 3, name: "Marketing", faculty: "Business"},
-    { id: 4, name: "Physics", faculty: "Science"},
-    { id: 5, name: "Literature", faculty: "Arts & Humanities" }
-  ],
-  users: [
-    { id: 1, name: "Jane Doe", role: "Student", faculty: "Engineering" },
-    { id: 2, name: "John Smith", role: "Professor", faculty: "Medicine" },
-    { id: 3, name: "Emily Johnson", role: "Student", faculty: "Business" },
-    { id: 4, name: "Michael Brown", role: "Admin", faculty: "" },
-    { id: 5, name: "Sarah Davis", role: "Professor", faculty: "Science" }
-  ],
-  specialties: [
-    { id: 1, name: "Software Engineering", faculty: "Engineering", students: 320 },
-    { id: 2, name: "Surgery", faculty: "Medicine", students: 180 },
-    { id: 3, name: "Finance", faculty: "Business", students: 250 },
-    { id: 4, name: "Astrophysics", faculty: "Science", students: 120 },
-    { id: 5, name: "Art History", faculty: "Arts & Humanities", students: 150 }
-  ]
-};
+import { useNavigate } from 'react-router-dom';
 
 const Counter = ({ end, duration = 2000 }) => {
   const [count, setCount] = useState(0);
@@ -82,63 +37,6 @@ const Counter = ({ end, duration = 2000 }) => {
   
   return <span>{count}</span>;
 };
-
-const Modal = ({ title, data, isOpen, onClose }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">{title}</h2>
-          <button 
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100"
-          >
-            <X size={24} />
-          </button>
-        </div>
-        
-        <div className="overflow-auto max-h-96">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {Object.keys(data[0]).map(key => (
-                  key !== 'id' && (
-                    <th 
-                      key={key}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      {key.charAt(0).toUpperCase() + key.slice(1)}
-                    </th>
-                  )
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {data.map(item => (
-                <tr key={item.id}>
-                  {Object.entries(item).map(([key, value]) => (
-                    key !== 'id' && (
-                      <td 
-                        key={key} 
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
-                      >
-                        {value }
-                      </td>
-                    )
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
 
 
 // Yukleme karti
@@ -184,26 +82,9 @@ export default function Dashboard() {
     speciality_count: 0
   });
 
-  const [modalData, setModalData] = useState({
-    isOpen: false,
-    title: '',
-    data: []
-  });
+  const navigate = useNavigate();
 
-  const openModal = (title, data) => {
-    setModalData({
-      isOpen: true,
-      title,
-      data
-    });
-  };
 
-  const closeModal = () => {
-    setModalData({
-      ...modalData,
-      isOpen: false
-    });
-  };
 
   const fetchDashboard = async () => {
     try {
@@ -223,7 +104,7 @@ export default function Dashboard() {
 
   return (
     <div className="h-[80vh]">
-      <div className="max-w-7xl mx-auto">
+      <div className=" mx-auto">
         <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">Dashboard</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -243,54 +124,47 @@ export default function Dashboard() {
                 title="Fakültələr"
                 count={data.faculty_count}
                 icon={Building2}
-                onClick={() => openModal('Fakültələr', fakeData.faculties)}
-              />
-
-              <DashboardCard
-                title="Kafedralar"
-                count={data.department_count}
-                icon={Building}
-                onClick={() => openModal('Kafedralar', fakeData.departments)}
+                onClick={() => navigate('/faculties')}
               />
 
               <DashboardCard
                 title="Qruplar"
                 count={data.group_count}
-                icon={Users}
-                onClick={() => openModal('Qruplar', fakeData.groups)}
+                icon={Building}
               />
 
               <DashboardCard
-                title="Fənnlər"
-                count={data.discipline_count}
+                title="Otaqlar"
+                count={data.room_count}
+                icon={Users}
+                onClick={() => navigate('/rooms')}
+              />
+
+              <DashboardCard
+                title="Müəllimlər"
+                count={data.teacher_count}
                 icon={BookOpen}
-                onClick={() => openModal('Fənnlər', fakeData.subjects)}
+                onClick={() => navigate('/teachers')}
               />
 
               <DashboardCard
                 title="İstifadəçilər"
                 count={data.user_count}
                 icon={UserRound}
-                onClick={() => openModal('İstifadəçilər', fakeData.users)}
+                onClick={() => navigate('/users')}
               />
 
               <DashboardCard
                 title="İxtisaslar"
                 count={data.speciality_count}
                 icon={GraduationCap}
-                onClick={() => openModal('İxtisaslar', fakeData.specialties)}
               />
             </>
           )}
         </div>
       </div>
 
-      <Modal
-        title={modalData.title}
-        data={modalData.data}
-        isOpen={modalData.isOpen}
-        onClose={closeModal}
-      />
+     
     </div>
   );
 }
