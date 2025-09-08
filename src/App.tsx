@@ -40,6 +40,8 @@ import Schedule from './pages/Schedule/Schedule';
 import FacultiesSchedule from './pages/Schedule/FacultiesSchedule';
 import RoomSchedule from './pages/Room/RoomSchedule';
 
+import MergeGroups from './pages/Merge/MergeGroups';
+
 import { ScheduleProvider } from './context/ScheduleContext';
 
 function App() {
@@ -157,7 +159,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                     <Route
+                    <Route
                       path="teachers"
                       element={
                         <ProtectedRoute requiredPermission="view_teachers">
@@ -199,6 +201,18 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
+
+                    <Route
+                      path="/merge-groups"
+                      element={
+                        <ProtectedRoute>
+                          <MergeGroups />
+                        </ProtectedRoute>
+                      }
+                    />
+
+
+
                     <Route
                       path="/faculties/:id"
                       element={

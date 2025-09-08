@@ -20,6 +20,8 @@ import {
   Clock,
   Landmark,
   UserCheck,
+  GroupIcon,
+  Merge,
 } from 'lucide-react';
 import Logo from '../../images/Logo.png';
 import { LiaChalkboardTeacherSolid } from "react-icons/lia";
@@ -27,6 +29,7 @@ import { LiaChalkboardTeacherSolid } from "react-icons/lia";
 import { useAuth } from '../../Context/AuthContext';
 // Import the usePermissions hook
 import usePermissions from '../../hooks/usePermissions'; 
+import { BiGroup } from 'react-icons/bi';
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -121,6 +124,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       label: 'Cədvəl',
       icon: <Calendar className="w-5 h-5" />,
       permission: canViewSchedules, // Assuming you'll add a 'view_schedules' permission
+    },
+        {
+      path: '/merge-groups',
+      label: 'Qrup birləşdirmə',
+      icon: <Merge className="w-5 h-5" />,
+      permission: true, // Assuming all authenticated users can access this
     },
     {
       path: '/rooms',

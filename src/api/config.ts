@@ -9,6 +9,7 @@ const axiosInstance = axios.create({
   },
 });
 
+// Request interceptor: Tokeni header-ə əlavə edir
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -22,10 +23,15 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+// Response interceptor: 401 xətası alındıqda istifadəçini yönləndirir
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API call error:', error.response ? error.response.data : error.message);
+    if (error.response && error.response.status === 401) {
+      // Tokeni sil və istifadəçini /signin-ə yönləndir
+      localStorage.removeItem('token');
+      window.location.href = '/signin';
+    }
     return Promise.reject(error);
   }
 );

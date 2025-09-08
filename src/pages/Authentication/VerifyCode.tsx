@@ -58,11 +58,16 @@ const VerifyCode: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center text-gray-900">
-          Təsdiq Kodunu Daxil Edin
-        </h2>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100">
+      <div className="w-full max-w-md p-8 space-y-1  bg-white rounded-lg shadow-md">
+        <div className='mb-6'>
+          <h2 className="text-2xl font-bold text-center text-gray-900">
+            Təsdiq Kodunu Daxil Edin
+          </h2>
+          <p className="mt-2 text-sm text-center text-gray-600">
+            Email ünvanınıza göndərilən təsdiq kodunu daxil edin
+          </p>
+        </div>
         {error && <p className="text-red-500 text-center">{error}</p>}
         <form className="mt-8 space-y-6" onSubmit={(e) => e.preventDefault()}>
           <div className="flex justify-center space-x-2">

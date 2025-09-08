@@ -43,6 +43,11 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const [shareWithOthers, setShareWithOthers] = useState(false);
+  const [sharedGroups, setSharedGroups] = useState<any[]>([]);
+  const [sharedGroupsLoading, setSharedGroupsLoading] = useState(false);
+  const [sharedGroupsOptions, setSharedGroupsOptions] = useState<any[]>([]);
+
   // Loading state-lər
   const [loadingStates, setLoadingStates] = useState({
     groups: false,
@@ -518,18 +523,12 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
     if (!formData.week_type_id) {
       newErrors.week_type_id = 'Həftə tipi seçilməlidir';
     }
-    if (!formData.teacher_code) {
-      newErrors.teacher_code = 'Müəllim seçilməlidir';
-    }
-    if (!isFacultyAdmin && !formData.room_id) {
-      newErrors.room_id = 'Otaq seçilməlidir';
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -540,11 +539,11 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const groupIds = Array.isArray(formData.group_id) ? formData.group_id : [formData.group_id];
+      const groupId = Array.isArray(formData.group_id) ? formData.group_id[0] : formData.group_id;
 
       const postData: any = {
         faculty_id: facultyId,
-        group_ids: groupIds,
+        group_id: groupId,
         day_id: Number(formData.day_id),
         hour_id: Number(formData.hour_id),
         week_type_id: Number(formData.week_type_id),
@@ -552,12 +551,23 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
         lesson_type_id: Number(formData.lesson_type_id),
         teacher_code: formData.teacher_code,
         ...(isFacultyAdmin ? {} : { room_id: Number(formData.room_id) }),
+        ...(shareWithOthers && sharedGroups.length > 0
+          ? { other_groups: sharedGroups }
+          : {}),
       };
 
-      await post('/api/schedules', postData);
+      const response = await post('/api/schedules', postData);
+
       successAlert('Uğurlu', 'Dərs uğurla əlavə olundu!');
-      onClose();
-      if (onSuccess) onSuccess();
+
+      if (onSuccess) {
+        onSuccess(
+          groupId,
+          Number(formData.day_id),
+          Number(formData.hour_id),
+          response.data
+        );
+      }
     } catch (error: any) {
       let message = 'Xəta baş verdi! Zəhmət olmasa yenidən cəhd edin.';
       if (error?.response?.data?.message) {
@@ -568,7 +578,6 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
       setIsSubmitting(false);
     }
   };
-
   if (!isOpen) return null;
 
   const LoadingOverlay = () => (
@@ -582,7 +591,7 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-9999 p-4"
       onClick={handleBackdropClick}
     >
       <div
@@ -713,6 +722,59 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
               )}
             </div>
 
+            <div className="col-span-1 md:col-span-3">
+              <label className="inline-flex items-center mt-2">
+                <input
+                  type="checkbox"
+                  checked={shareWithOthers}
+                  onChange={async (e) => {
+                    setShareWithOthers(e.target.checked);
+                    if (e.target.checked && (!Array.isArray(sharedGroupsOptions) || sharedGroupsOptions.length === 0)) {
+                      setSharedGroupsLoading(true);
+                      try {
+                        const res = await get(`/api/groups-all`);
+                        // Həmişə array olduğuna əmin olun
+                        const arr = res.data && Array.isArray(res.data.data) ? res.data.data : [];
+                        setSharedGroupsOptions(arr);
+
+                      } finally {
+                        setSharedGroupsLoading(false);
+                      }
+                    }
+                  }}
+                  className="form-checkbox h-4 w-4 text-indigo-600"
+                />
+                <span className="ml-2 text-sm text-gray-700">Digər qruplarla paylaş</span>
+              </label>
+              {shareWithOthers && (
+                <div className="mt-2">
+                  <VirtualSelect
+                    value={sharedGroups.map(Number)} // id-ləri number edin
+                    onChange={(val) => setSharedGroups(val.map(Number))}
+                    name="shared_groups"
+                    options={
+                      Array.isArray(sharedGroupsOptions)
+                        ? sharedGroupsOptions
+                          .filter(g => {
+                            const mainIds = Array.isArray(formData.group_id)
+                              ? formData.group_id.map(Number)
+                              : [];
+                            return !mainIds.includes(Number(g.id));
+                          })
+                          .map(g => ({
+                            id: Number(g.id),
+                            name: `${g.name} (${g.faculty.name})`
+                          }))
+                        : []
+                    }
+                    multiple
+                    placeholder="Qrupları seçin"
+                    isLoading={sharedGroupsLoading}
+                  />
+                </div>
+              )}
+            </div>
+
             {/* Dərs tipi və Həftə tipi */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -768,7 +830,7 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Müəllim <span className="text-red-500">*</span>
+                  Müəllim
                 </label>
                 {loadingStates.lessonTypeProfessors ? (
                   <div className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 flex items-center gap-2">
@@ -796,60 +858,58 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
                     }
                   />
                 )}
-                {errors.teacher_code && (
-                  <p className="mt-1 text-sm text-red-600">{errors.teacher_code}</p>
-                )}
+
               </div>
 
               {!isFacultyAdmin && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Otaq <span className="text-red-500">*</span>
+                    Otaq
                   </label>
-                 <VirtualSelect
-    value={formData.room_id}
-    onChange={handleFieldChange}
-    name="room_id"
-    options={rooms.map((room) => {
-        // Əgər 'conflict_info' massivi boş deyilsə
-        if (room.conflict_info && room.conflict_info.length > 0) {
-            // 'conflict_info' massivini dolaşaraq hər bir qrup adını götürürük
-            const conflictGroups = room.conflict_info.map(conflict => conflict.group).join(', ');
-            
-            // Yeni bir string yaradırıq, burada otaq adından sonra doluluq barədə məlumat verilir.
-            const name = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} - Doludur (${conflictGroups})`;
-            
-            return {
-                id: room.id,
-                name: name,
-            };
-        }
-        
-        // Əgər 'conflict_info' boşdursa, otağın boş olduğunu bildiririk.
-        const name = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} - Boşdur`;
-        
-        return {
-            id: room.id,
-            name: name,
-        };
-    })}
-    required
-    error={!!errors.room_id}
-    placeholder={
-        (formData.week_type_id && formData.day_id && formData.hour_id)
-            ? (loadingStates.rooms ? "Otaqlar yüklənir..." : "Otaq seçin")
-            : "Əvvəl Həftə tipi, Gün və Saat seçin"
-    }
-    disabled={!formData.week_type_id || !formData.day_id || !formData.hour_id}
-    searchPlaceholder="Otaq axtarın..."
-    dropdownDirection="top"
-    onOpen={() => {
-        if (!loadedData.rooms) {
-            loadRooms();
-        }
-    }}
-    isLoading={loadingStates.rooms}
-/>
+                  <VirtualSelect
+                    value={formData.room_id}
+                    onChange={handleFieldChange}
+                    name="room_id"
+                    options={rooms.map((room) => {
+                      // Əgər 'conflict_info' massivi boş deyilsə
+                      if (room.conflict_info && room.conflict_info.length > 0) {
+                        // 'conflict_info' massivini dolaşaraq hər bir qrup adını götürürük
+                        const conflictGroups = room.conflict_info.map(conflict => conflict.group).join(', ');
+
+                        // Yeni bir string yaradırıq, burada otaq adından sonra doluluq barədə məlumat verilir.
+                        const name = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} - Doludur (${conflictGroups})`;
+
+                        return {
+                          id: room.id,
+                          name: name,
+                        };
+                      }
+
+                      // Əgər 'conflict_info' boşdursa, otağın boş olduğunu bildiririk.
+                      const name = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} - Boşdur`;
+
+                      return {
+                        id: room.id,
+                        name: name,
+                      };
+                    })}
+                    required
+                    error={!!errors.room_id}
+                    placeholder={
+                      (formData.week_type_id && formData.day_id && formData.hour_id)
+                        ? (loadingStates.rooms ? "Otaqlar yüklənir..." : "Otaq seçin")
+                        : "Əvvəl Həftə tipi, Gün və Saat seçin"
+                    }
+                    disabled={!formData.week_type_id || !formData.day_id || !formData.hour_id}
+                    searchPlaceholder="Otaq axtarın..."
+                    dropdownDirection="top"
+                    onOpen={() => {
+                      if (!loadedData.rooms) {
+                        loadRooms();
+                      }
+                    }}
+                    isLoading={loadingStates.rooms}
+                  />
 
                   {errors.room_id && (
                     <p className="mt-1 text-sm text-red-600">{errors.room_id}</p>

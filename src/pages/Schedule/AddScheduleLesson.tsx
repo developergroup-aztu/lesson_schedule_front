@@ -98,9 +98,6 @@ const AddScheduleLesson = () => {
     if (!formData.week_type_id) {
       errors.week_type_id = 'Həftə tipi seçilməlidir';
     }
-    if (!formData.teacher_id) {
-      errors.teacher_id = 'Müəllim seçilməlidir';
-    }
     // if (!formData.room_id) {
     //   errors.room_id = 'Otaq seçilməlidir';
     // }

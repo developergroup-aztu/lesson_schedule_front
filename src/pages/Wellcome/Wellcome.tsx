@@ -1,5 +1,6 @@
 import { Calendar, Search, Zap, ArrowRight, Users, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Logo from '../../images/AzTU Logo.png';
 
 function Wellcome() {
     const navigate = useNavigate();
@@ -21,7 +22,7 @@ function Wellcome() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2 sm:space-x-3">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br rounded-xl p-1 flex items-center justify-center shadow-lg">
-              <img src="https://smartjob.az/storage/avatars/USxbbHTzg3TYKNVI8dEiqtekJilnOGeFoi7Tp51j.png" alt="AzTU Logo" className="w-full h-full object-cover rounded-xl" />
+              <img src={Logo} alt="AzTU Logo" className="w-full h-full object-cover rounded-xl" />
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-[#0D1F61]">AzTU</h2>
@@ -161,7 +162,7 @@ function Wellcome() {
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
             <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br rounded-md sm:rounded-lg flex items-center justify-center">
-              <img src="https://smartjob.az/storage/avatars/USxbbHTzg3TYKNVI8dEiqtekJilnOGeFoi7Tp51j.png" alt="AzTU Logo" className="w-full h-full object-cover rounded-md sm:rounded-lg" />
+              <img src={Logo} alt="AzTU Logo" className="w-full h-full object-cover rounded-md sm:rounded-lg" />
             </div>
             <span className="text-sm sm:text-base font-bold text-[#0D1F61]">AzTU Dərs Cədvəli Sistemi</span>
           </div>

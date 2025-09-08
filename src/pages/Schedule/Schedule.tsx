@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '../../components/Header';
 import ScheduleTable from '../../components/ScheduleTable/ScheduleTable';
 import LessonModal from '../../components/ScheduleModal/LessonModal';
@@ -134,6 +134,22 @@ function Schedule() {
     });
   };
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const y = window.scrollY;
+      console.log("Scroll Y:", y);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+
+    // cleanup
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+
+
   const handleEditLesson = (
     groupId,
     dayId,
@@ -266,7 +282,7 @@ function Schedule() {
                       Dərs Cədvəli
                     </p>
                     <p className="text-slate-800 text-lg font-bold">
-                      2024-2025
+                      2025-2026
                     </p>
                   </div>
                 </div>

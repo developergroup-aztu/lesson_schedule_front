@@ -73,14 +73,14 @@ const UserTable: React.FC = () => {
     if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
     if (selectedRole) url += `&role=${encodeURIComponent(selectedRole)}`;
     get(url)
-       .then((res) => {
-    const arr = Array.isArray(res.data) ? res.data : (res.data.data || []);
-    setUsers(arr);
-    setCurrentPage(res.data.current_page || 1);
-    setLastPage(res.data.last_page || 1);
-    setTotal(res.data.total || 0);
-    setPerPage(res.data.per_page || 10);
-  })
+      .then((res) => {
+        const arr = Array.isArray(res.data) ? res.data : (res.data.data || []);
+        setUsers(arr);
+        setCurrentPage(res.data.current_page || 1);
+        setLastPage(res.data.last_page || 1);
+        setTotal(res.data.total || 0);
+        setPerPage(res.data.per_page || 10);
+      })
       .catch((error: any) => {
         const msg =
           error?.response?.data?.message ||
@@ -244,8 +244,8 @@ const UserTable: React.FC = () => {
       </div>
 
       {/* Table */}
-<div className="bg-white rounded-lg shadow border border-gray-100 overflow-x-auto hidden lg:block">
-  <table className="min-w-full bg-white">
+      <div className="bg-white rounded-lg shadow border border-gray-100 overflow-x-auto hidden lg:block">
+        <table className="min-w-full bg-white">
           <thead>
             <tr className="bg-indigo-50">
               <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">#</th>
@@ -275,7 +275,9 @@ const UserTable: React.FC = () => {
                           key={role}
                           className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs font-medium"
                         >
-                          {role}
+                          {role === 'FacultyAdmin' && user.faculty?.name
+                            ? `${role} (${user.faculty.name})`
+                            : role}
                         </span>
                       ))}
                     </div>
@@ -419,7 +421,9 @@ const UserTable: React.FC = () => {
                     key={role}
                     className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs font-medium"
                   >
-                    {role}
+                    {role === 'FacultyAdmin' && user.faculty?.name
+                      ? `${role} (${user.faculty.name})`
+                      : role}
                   </span>
                 ))}
               </div>

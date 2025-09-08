@@ -5,6 +5,7 @@ import { get, post, del } from '../api/service';
 import { useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { ClipLoader } from 'react-spinners';
+import { toast } from 'react-toastify';
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);
 
@@ -28,81 +29,80 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
   const [hasError, setHasError] = useState(false);
   const alertShownRef = useRef(false); // Alert göstərilməsini kontrol etmək üçün
 
-  const fetchSchedule = useCallback(async () => {
-    let facultyId: number | undefined;
+    const scrollPositionRef = useRef(0);
 
-    if (
-      user?.roles?.includes("admin") || user?.roles?.includes("SuperAdmin")
-    ){
-      facultyId = params.id ? Number(params.id) : undefined;
-    }
-    else if ((user as any)?.faculty_id) {
-      facultyId = Number((user as any).faculty_id);
-    }
 
-    if (!facultyId) {
-      setLoading(false);
-      return;
-    }
+const fetchSchedule = useCallback(async () => {
+  let facultyId: number | undefined;
+  setLoading(true); // Loading-i başlat
 
-    setLoading(true);
-    setHasError(false);
+  if (user?.roles?.includes("admin") || user?.roles?.includes("SuperAdmin")) {
+    facultyId = params.id ? Number(params.id) : undefined;
+  }
+  else if ((user as any)?.faculty_id) {
+    facultyId = Number((user as any).faculty_id);
+  }
+
+  if (!facultyId) {
+    setLoading(false);
+    return;
+  }
+
+  try {
+    const response = await get(`/api/faculties/${facultyId}`);
     
-    try {
-      const response = await get(`/api/faculties/${facultyId}`);
-      
-      // Məlumatı set et
-      if (response?.data) {
-        setScheduleData({
-          ...response.data,
-          groups: response.data.groups ?? [],
-        });
-        
-        // Room message varsa warning göstər (yalnız bir dəfə)
-        if (response.data.room_message && !alertShownRef.current) {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Diqqət',
-            text: response.data.room_message,
-            confirmButtonColor: '#2563eb',
-            timer: 4000,
-            timerProgressBar: true
-          });
-          alertShownRef.current = true;
-        }
-      }
-    } catch (error: any) {
-      console.error('Cədvəl yükləmə xətası:', error);
-      setHasError(true);
-      setScheduleData(null);
-      
-      // Server error alert göstər
-      const errorMessage = error?.response?.data?.message || 
-                          error?.message || 
-                          'Cədvəl yükləmə zamanı server xətası baş verdi';
-      
-      Swal.fire({
-        icon: 'error',
-        title: 'Server Xətası',
-        text: errorMessage,
-        confirmButtonColor: '#2563eb',
-        confirmButtonText: 'Yenidən cəhd et',
-      }).then((result) => {
-        if (result.isConfirmed) {
-          // Yenidən cəhd et
-          fetchSchedule();
-        }
+    // Məlumatı set et
+    if (response?.data) {
+      setScheduleData({
+        ...response.data,
+        groups: response.data.groups ?? [],
       });
-    } finally {
-      setLoading(false);
+            setTimeout(() => {
+          window.scrollTo({
+            top: scrollPositionRef.current,
+            behavior: 'instant'
+          });
+        }, 0);
+      // Room message varsa warning toast göstər (yalnız bir dəfə)
+      if (response.data.room_message && !alertShownRef.current) {
+        toast.warn(response.data.room_message, {
+          position: "top-right",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        alertShownRef.current = true;
+      }
     }
-  }, [user, params.id]);
+    return response.data;
+  } catch (error: any) {
+    console.error('Cədvəl yükləmə xətası:', error);
+    setHasError(true);
+    setScheduleData(null);
+    
+    const errorMessage = error?.response?.data?.message || 
+                        error?.message || 
+                        'Cədvəl yükləmə zamanı server xətası baş verdi';
+    
+    throw new Error(errorMessage);
+  } finally {
+    setLoading(false); // İstənilən halda loading-i bitir
+  }
+}, [user, params.id]);
 
   useEffect(() => {
     // Alert ref-i reset et hər yeni fetch-dən əvvəl
     alertShownRef.current = false;
     fetchSchedule();
   }, [fetchSchedule]);
+
+  // Scroll sıfırlanmasın deyə loading və error state-lərində scroll-u saxla
+  useEffect(() => {
+    if (loading || hasError) return;
+    // Burada heç bir scroll kodu olmasın!
+  }, [loading, hasError]);
 
   // Loading state
   if (loading) {
@@ -140,7 +140,12 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     );
   }
 
-  const addLesson = (groupId: number, dayId: number, hourId: number, lesson: Lesson) => {
+const addLesson = async (groupId: number, dayId: number, hourId: number, lesson: Lesson) => {
+  try {
+    // First update local state
+
+          scrollPositionRef.current = window.scrollY;
+
     setScheduleData(prevData => {
       if (!prevData) return prevData;
       const newData = { ...prevData };
@@ -163,15 +168,27 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
       }
       return newData;
     });
-  };
 
-  const editLesson = (
-    groupId: number,
-    dayId: number,
-    hourId: number,
-    lessonIndex: number,
-    updatedLesson: Lesson
-  ) => {
+    // Then refresh the schedule
+    await fetchSchedule();
+  } catch (error) {
+    console.error('Error adding lesson:', error);
+    throw error;
+  }
+};
+
+
+const editLesson = async (
+  groupId: number,
+  dayId: number,
+  hourId: number,
+  lessonIndex: number,
+  updatedLesson: Lesson
+) => {
+  try {
+          scrollPositionRef.current = window.scrollY;
+
+    // First update local state
     setScheduleData(prevData => {
       if (!prevData) return prevData;
       const newData = { ...prevData };
@@ -187,7 +204,14 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
       hour.lessons[lessonIndex] = updatedLesson;
       return newData;
     });
-  };
+
+    // Then refresh the schedule
+    await fetchSchedule();
+  } catch (error) {
+    console.error('Error editing lesson:', error);
+    throw error;
+  }
+};
 
   const deleteLesson = async (
     groupId: number,
@@ -288,7 +312,7 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     }
   };
 
-  const value: ScheduleContextType = {
+const value: ScheduleContextType = {
     scheduleData,
     setScheduleData,
     addLesson,
@@ -296,7 +320,8 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
     deleteLesson,
     toggleBlockStatus,
     refreshSchedule: fetchSchedule,
+    loading,        // BURADA ƏLAVƏ ET
+    hasError        // BURADA ƏLAVƏ ET
   };
-
   return <ScheduleContext.Provider value={value}>{children}</ScheduleContext.Provider>;
 };

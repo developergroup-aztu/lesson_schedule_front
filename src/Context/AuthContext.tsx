@@ -6,12 +6,13 @@ import React, {
   ReactNode,
 } from 'react';
 import { getProfile } from '../api/service';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: {
     name: string;
+    surname?: string;
     email: string;
     roles: string[];
     permissions: string[];
@@ -23,7 +24,7 @@ interface AuthContextType {
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined,
+  undefined
 );
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
@@ -32,6 +33,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<{
     name: string;
+    surname?: string;
     email: string;
     roles: string[];
     permissions: string[];
@@ -39,14 +41,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     faculty_name?: string;
   } | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
+  // Unauthorized vəziyyətində istifadəçini yönləndirir
+  const handleUnauthorized = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    setUser(null);
+    navigate('/signin', { replace: true });
+  };
+
+  // Profil məlumatlarını çəkir
   const fetchProfile = async () => {
     try {
       const profileData = await getProfile();
       const userData = profileData.data.userData;
       setUser({
         name: userData.name,
+        surname: userData.surname,
         email: userData.email,
         roles: userData.roles,
         permissions: userData.permissions,
@@ -54,20 +65,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         faculty_name: userData.faculty_name,
       });
       setIsAuthenticated(true);
-
-      // Əgər FacultyAdmin rolundadırsa və route "/"-dursa, schedules-ə yönləndir
-      if (
-        userData.roles?.includes('FacultyAdmin') &&
-        location.pathname === '/dashboard'
-      ) {
-        navigate('/schedules', { replace: true });
-      }
     } catch (error) {
       console.error('Error fetching profile:', error);
       setIsAuthenticated(false);
     }
   };
 
+  // İlk dəfə komponent yüklənəndə tokeni yoxlayır
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -75,31 +79,49 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     } else {
       setIsAuthenticated(false);
     }
-    // eslint-disable-next-line
   }, []);
 
-const login = async (token: string) => {
-  localStorage.setItem('token', token);
-  const profileData = await getProfile();
-  const userData = profileData.data.userData;
-  setUser({
-    name: userData.name,
-    email: userData.email,
-    roles: userData.roles,
-    permissions: userData.permissions,
-    faculty_id: userData.faculty_id,
-    faculty_name: userData.faculty_name,
-  });
-  setIsAuthenticated(true);
+  // İstifadəçi daxil olduqda işləyir
+  const login = async (token: string) => {
+    try {
+      // Tokeni yadda saxla
+      localStorage.setItem('token', token);
 
-  // FacultyAdmin isə /schedules-ə yönləndir, yoxsa /
-  if (userData.roles?.includes('FacultyAdmin')) {
-    navigate('/schedules', { replace: true });
-  } else {
-    navigate('/dashboard', { replace: true });
-  }
-};
+      // Profil məlumatlarını çək
+      const profileData = await getProfile();
+      const userData = profileData.data.userData;
 
+      // İstifadəçi məlumatlarını state-ə yaz
+      setUser({
+        name: userData.name,
+        surname: userData.surname,
+        email: userData.email,
+        roles: userData.roles,
+        permissions: userData.permissions,
+        faculty_id: userData.faculty_id,
+        faculty_name: userData.faculty_name,
+      });
+
+      // İstifadəçini autentifikasiya olunmuş kimi işarələ
+      setIsAuthenticated(true);
+
+      // Dashboard-a yönləndir
+      navigate('/dashboard', { replace: true });
+    } catch (error: any) {
+      console.error('Error during login:', error);
+
+      // Əgər xətalı cavab varsa, tokeni sil
+      localStorage.removeItem('token');
+      setIsAuthenticated(false);
+
+      // Əgər 401 xətası varsa, istifadəçini signin səhifəsinə yönləndir
+      if (error.response && error.response.status === 401) {
+        handleUnauthorized();
+      }
+    }
+  };
+
+  // İstifadəçini çıxış etdirir
   const logout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
