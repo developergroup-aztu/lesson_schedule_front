@@ -22,6 +22,9 @@ const MergeEditModal: React.FC<MergeEditModalProps> = ({
   const [lessonTypeOptions, setLessonTypeOptions] = useState<any[]>([]);
   const [otherGroupOptions, setOtherGroupOptions] = useState<any[]>([]);
 
+  const [selectedGroups, setSelectedGroups] = useState([]);
+  const [mergeData, setMergeData] = useState<any | null>(null);
+
   const { successAlert, errorAlert } = useSweetAlert();
 
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
@@ -36,6 +39,10 @@ const MergeEditModal: React.FC<MergeEditModalProps> = ({
   const [isManualChange, setIsManualChange] = useState(false);
 
   const { user } = useAuth();
+
+
+  const preSelectedGroups = mergeData?.groups?.map((g: any) => g.group_id) || [];
+
 
   // Helper function - ID-ləri normalize et (VirtualSelect ilə uyğun)
   const normalizeId = (obj: any) => {
@@ -52,13 +59,18 @@ const MergeEditModal: React.FC<MergeEditModalProps> = ({
 
   // Helper function - options-u VirtualSelect üçün normalize et
   const normalizeOptions = (options: any[], idField?: string) => {
-    return options.map(option => ({
+    return options.map((option: any) => ({
       ...option,
-      id: option.id || option.value || option[idField || 'id'] || option.lecture_id || option.lesson_type_id || option.group_id
+      // IMPORTANT: Prefer explicit id field (e.g., group_id) so values align
+      id: (idField ? option[idField] : undefined) ?? option[idField || 'id'] ?? option.group_id ?? option.id ?? option.value,
+      name: option.group_name || option.name, // group_name sahəsini doldur
     }));
   };
 
-const fetchGroups = async () => {
+
+
+
+  const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
       const grupApi =
@@ -67,15 +79,15 @@ const fetchGroups = async () => {
           : `/api/groups?faculty_id=${user?.faculty_id}`;
       const res = await get(`${grupApi}`);
       const groupsData = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      
-      const formattedGroups = groupsData.map(group => {
-          const facultyName = group.faculty?.name;
-          const nameWithFaculty = facultyName ? `${group.name} (${facultyName})` : group.name;
 
-          return {
-              ...group,
-              name: nameWithFaculty
-          };
+      const formattedGroups = groupsData.map((group: any) => {
+        const facultyName = group.faculty?.name;
+        const nameWithFaculty = facultyName ? `${group.name} (${facultyName})` : group.name;
+
+        return {
+          ...group,
+          name: nameWithFaculty
+        };
       });
 
       return formattedGroups;
@@ -111,7 +123,23 @@ const fetchGroups = async () => {
     setLoadingOtherGroups(true);
     try {
       const res = await get(`/api/lessons/${lessonId}/groups?lesson_type_id=${lessonTypeId}`);
-      return Array.isArray(res.data) ? res.data : res.data?.data || [];
+      const fetchedGroups = Array.isArray(res.data) ? res.data : res.data?.data || [];
+
+      // Merge-dən gələn qrupların (ilkini çıxmaq şərti ilə) adlarını çıxart
+      const excludedByName: string[] = Array.isArray(mergeData?.groups)
+        ? mergeData!.groups.slice(1).map((g: any) => g.group_name)
+        : [];
+
+      // group_name ilə filter et (məs: 642a3, 642a1 çıxacaq)
+      const filteredByName = fetchedGroups.filter((g: any) => !excludedByName.includes(g.group_name));
+
+      // Əvvəlcədən seçilmiş qrupları saxlayın və id-yə görə dedup edin
+      const normalizedFetchedGroups = normalizeOptions(filteredByName, 'group_id');
+      const existingSelected = otherGroupOptions.filter((option) => selectedOtherGroup.includes(option.id));
+      const combined = [...normalizedFetchedGroups, ...existingSelected];
+      const uniqueById = Array.from(new Map(combined.map(item => [String(item.id), item])).values());
+
+      return uniqueById;
     } finally {
       setLoadingOtherGroups(false);
     }
@@ -120,11 +148,12 @@ const fetchGroups = async () => {
   // Mövcud merge məlumatını yüklə və selectləri doldur
   const fetchMergeData = async () => {
     if (!mergeId) return;
-    
+
     try {
       // Merge data yüklə
       const res = await get(`/api/merges/${mergeId}`);
       const data = res.data?.data || res.data;
+      setMergeData(data);
 
       // 1. Qrupları yüklə və set et
       const groups = await fetchGroups();
@@ -141,13 +170,13 @@ const fetchGroups = async () => {
 
         // 3. Dərsləri yüklə və set et
         const lectures = await fetchLecturesByGroup(mainGroupId);
-        const normalizedLectures = normalizeOptions(lectures, 'lecture_id');
+        const normalizedLectures = normalizeOptions(lectures, 'id');
         setLectureOptions(normalizedLectures);
 
         // 4. Dərsi tap (lecture_id ilə) və set et (value: option.id)
         const lectureObj = normalizedLectures.find((item: any) => String(item.lecture_id ?? item.id) === String(data.lecture_id));
         const lectureIdToSet = lectureObj ? lectureObj.id : null;
-        
+
         if (lectureIdToSet) {
           setSelectedLecture(lectureIdToSet);
 
@@ -159,7 +188,7 @@ const fetchGroups = async () => {
           // 6. Dərs tipini tap və set et
           const lessonTypeObj = findById(normalizedLessonTypes, data.lesson_type_id);
           const lessonTypeIdToSet = lessonTypeObj ? lessonTypeObj.id : null;
-          
+
           if (lessonTypeIdToSet) {
             setSelectedLessonType(lessonTypeIdToSet);
 
@@ -209,7 +238,7 @@ const fetchGroups = async () => {
       setLessonTypeOptions([]);
       setOtherGroupOptions([]);
       fetchLecturesByGroup(selectedGroup).then(lectures => {
-        const normalizedLectures = normalizeOptions(lectures, 'lecture_id');
+        const normalizedLectures = normalizeOptions(lectures, 'id');
         setLectureOptions(normalizedLectures);
       });
     }
@@ -249,7 +278,7 @@ const fetchGroups = async () => {
       selectedOtherGroup.length === 0
     )
       return;
-    
+
     setSubmitting(true);
     try {
       const group_ids = [selectedGroup, ...selectedOtherGroup];
@@ -352,6 +381,14 @@ const fetchGroups = async () => {
               required
               disabled={!selectedLessonType}
               multiple
+              excludeValues={[selectedGroup, ...selectedOtherGroup]}
+              onOpen={() => {
+                if (selectedLecture && selectedLessonType) {
+                  fetchOtherGroups(selectedLecture, selectedLessonType).then((updatedGroups) => {
+                    setOtherGroupOptions(updatedGroups);
+                  });
+                }
+              }}
             />
           </div>
           <button

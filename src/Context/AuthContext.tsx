@@ -42,7 +42,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   } | null>(null);
   const navigate = useNavigate();
 
-  // Unauthorized vəziyyətində istifadəçini yönləndirir
   const handleUnauthorized = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
@@ -50,7 +49,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     navigate('/signin', { replace: true });
   };
 
-  // Profil məlumatlarını çəkir
   const fetchProfile = async () => {
     try {
       const profileData = await getProfile();
@@ -71,7 +69,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // İlk dəfə komponent yüklənəndə tokeni yoxlayır
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -81,17 +78,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
-  // İstifadəçi daxil olduqda işləyir
   const login = async (token: string) => {
     try {
-      // Tokeni yadda saxla
       localStorage.setItem('token', token);
 
-      // Profil məlumatlarını çək
       const profileData = await getProfile();
       const userData = profileData.data.userData;
 
-      // İstifadəçi məlumatlarını state-ə yaz
       setUser({
         name: userData.name,
         surname: userData.surname,
@@ -102,26 +95,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         faculty_name: userData.faculty_name,
       });
 
-      // İstifadəçini autentifikasiya olunmuş kimi işarələ
       setIsAuthenticated(true);
 
-      // Dashboard-a yönləndir
       navigate('/dashboard', { replace: true });
     } catch (error: any) {
       console.error('Error during login:', error);
 
-      // Əgər xətalı cavab varsa, tokeni sil
       localStorage.removeItem('token');
       setIsAuthenticated(false);
 
-      // Əgər 401 xətası varsa, istifadəçini signin səhifəsinə yönləndir
       if (error.response && error.response.status === 401) {
         handleUnauthorized();
       }
     }
   };
 
-  // İstifadəçini çıxış etdirir
   const logout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);

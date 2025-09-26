@@ -7,6 +7,7 @@ import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa6';
 import Breadcrumb from '../../components/Breadcrumbs/Breadcrumb';
 import { useDebounce } from '../../hooks/useDebounce';
 import useSweetAlert from '../../hooks/useSweetAlert'; // Import the hook
+import usePermissions from '../../hooks/usePermissions';
 
 interface Room {
   id: number;
@@ -38,6 +39,8 @@ const Rooms: React.FC = () => {
 
   // Initialize the SweetAlert hook
   const { errorAlert } = useSweetAlert();
+
+  const canViewRoomSchedule = usePermissions('view_room');
 
   // Sortable columns (these are now also the implicitly searchable columns for global search)
   const sortableColumns = [
@@ -228,7 +231,9 @@ const Rooms: React.FC = () => {
                   </div>
                 </th>
               ))}
-              <th className="py-4 px-6 border-b text-center font-semibold text-gray-700">Bax</th>
+              {canViewRoomSchedule && (
+                <th className="py-4 px-6 border-b text-center font-semibold text-gray-700">Bax</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -257,15 +262,19 @@ const Rooms: React.FC = () => {
                   <td className="py-3 px-6 border-b">{room.name}</td>
                   <td className="py-3 px-6 border-b">{room.room_capacity}</td>
                   <td className="py-3 px-6 border-b">{room.types}</td>
-                  <td className="py-3 px-6 border-b text-center">
-                    <button
-                      className="bg-yellow-100 hover:bg-yellow-200 text-yellow-600 p-1.5 rounded-lg transition-colors"
-                      onClick={() => navigate(`/rooms/${room.id}`)}
-                      title="Cədvələ bax"
-                    >
-                      <PiEyeLight className="w-5 h-5" />
-                    </button>
-                  </td>
+                  {
+                    canViewRoomSchedule && (
+                      <td className="py-3 px-6 border-b text-center">
+                        <button
+                          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-600 p-1.5 rounded-lg transition-colors"
+                          onClick={() => navigate(`/rooms/${room.id}`)}
+                          title="Cədvələ bax"
+                        >
+                          <PiEyeLight className="w-5 h-5" />
+                        </button>
+                      </td>
+                    )
+                  }
                 </tr>
               ))
             )}
@@ -294,11 +303,10 @@ const Rooms: React.FC = () => {
                 <button
                   key={page}
                   onClick={() => handlePageChange(page)}
-                  className={`px-3 py-1 border rounded-lg ${
-                    page === currentPage
+                  className={`px-3 py-1 border rounded-lg ${page === currentPage
                       ? 'bg-indigo-600 text-white border-indigo-600 '
                       : 'bg-white text-slate-700 hover:bg-indigo-100 hover:border-indigo-100 border-stroke'
-                  }`}
+                    }`}
                 >
                   {page}
                 </button>

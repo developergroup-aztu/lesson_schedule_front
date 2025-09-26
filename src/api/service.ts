@@ -16,6 +16,14 @@ export const post = (url: string, data: any) => {
   return axiosInstance.post(url, data);
 };
 
+// Fayl/PDF cavabı gözlənilən POST sorğuları üçün
+export const postFile = (url: string, data: any, options?: any) => {
+  return axiosInstance.post(url, data, {
+    responseType: 'blob',
+    ...options,
+  });
+};
+
 export const put = (url: string, data: any) => {
   return axiosInstance.put(url, data);
 };

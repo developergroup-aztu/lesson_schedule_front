@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.swal2-custom-z-index {
+  z-index: 1050 !important; /* Modalın üstündə görünməsi üçün yüksək dəyər */
+}
+
 
 /* In your global CSS file, e.g., index.css or App.css */
 .my-swal-zindex {
@@ -17,32 +21,7 @@
     padding: 0;
   }
 
-  .no-print {
-    display: none !important;
-  }
 
-  .schedule-print-area {
-    width: 100vw !important;
-    height: auto !important;
-    overflow: visible !important;
-    background: white !important;
-  }
-
-  .schedule-table-scroll {
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  .schedule-shift {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .schedule-print-area table {
-    page-break-inside: avoid;
-    break-inside: avoid;
-    width: 100%;
-  }
 
   html, body {
     zoom: 70%; /* Kağız sığması üçün. İstəyə görə dəyişə bilərsən */

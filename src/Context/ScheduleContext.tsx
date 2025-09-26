@@ -26,15 +26,16 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
   const params = useParams();
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoaded, setIsInitialLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const alertShownRef = useRef(false); // Alert göstərilməsini kontrol etmək üçün
+  const alertShownRef = useRef(false); 
 
     const scrollPositionRef = useRef(0);
 
 
 const fetchSchedule = useCallback(async () => {
   let facultyId: number | undefined;
-  setLoading(true); // Loading-i başlat
+  setLoading(true); 
 
   if (user?.roles?.includes("admin") || user?.roles?.includes("SuperAdmin")) {
     facultyId = params.id ? Number(params.id) : undefined;
@@ -57,13 +58,13 @@ const fetchSchedule = useCallback(async () => {
         ...response.data,
         groups: response.data.groups ?? [],
       });
+      if (!isInitialLoaded) setIsInitialLoaded(true);
             setTimeout(() => {
           window.scrollTo({
             top: scrollPositionRef.current,
             behavior: 'instant'
           });
         }, 0);
-      // Room message varsa warning toast göstər (yalnız bir dəfə)
       if (response.data.room_message && !alertShownRef.current) {
         toast.warn(response.data.room_message, {
           position: "top-right",
@@ -88,24 +89,20 @@ const fetchSchedule = useCallback(async () => {
     
     throw new Error(errorMessage);
   } finally {
-    setLoading(false); // İstənilən halda loading-i bitir
+    setLoading(false); 
   }
 }, [user, params.id]);
 
   useEffect(() => {
-    // Alert ref-i reset et hər yeni fetch-dən əvvəl
     alertShownRef.current = false;
     fetchSchedule();
   }, [fetchSchedule]);
 
-  // Scroll sıfırlanmasın deyə loading və error state-lərində scroll-u saxla
   useEffect(() => {
     if (loading || hasError) return;
-    // Burada heç bir scroll kodu olmasın!
   }, [loading, hasError]);
 
-  // Loading state
-  if (loading) {
+  if (loading && !isInitialLoaded) {
     return (
       <div className="flex justify-center items-center h-[80vh]">
         <div className="flex flex-col items-center gap-4">
@@ -116,7 +113,6 @@ const fetchSchedule = useCallback(async () => {
     );
   }
 
-  // Error state - məlumat xarakterli göstəriş
   if (hasError || !scheduleData) {
     return (
       <div className="flex justify-center items-center h-[80vh]">
@@ -142,8 +138,6 @@ const fetchSchedule = useCallback(async () => {
 
 const addLesson = async (groupId: number, dayId: number, hourId: number, lesson: Lesson) => {
   try {
-    // First update local state
-
           scrollPositionRef.current = window.scrollY;
 
     setScheduleData(prevData => {
@@ -169,7 +163,6 @@ const addLesson = async (groupId: number, dayId: number, hourId: number, lesson:
       return newData;
     });
 
-    // Then refresh the schedule
     await fetchSchedule();
   } catch (error) {
     console.error('Error adding lesson:', error);
@@ -188,7 +181,6 @@ const editLesson = async (
   try {
           scrollPositionRef.current = window.scrollY;
 
-    // First update local state
     setScheduleData(prevData => {
       if (!prevData) return prevData;
       const newData = { ...prevData };
@@ -205,7 +197,6 @@ const editLesson = async (
       return newData;
     });
 
-    // Then refresh the schedule
     await fetchSchedule();
   } catch (error) {
     console.error('Error editing lesson:', error);
@@ -233,7 +224,6 @@ const editLesson = async (
       if (hourIndex === -1) return prevData;
       const hour = day.hours[hourIndex];
       if (lessonIndex < 0 || lessonIndex >= hour.lessons.length) return prevData;
-      // schedule_group_id-ni tap
       schedule_group_id = hour.lessons[lessonIndex]?.schedule_group_id;
       hour.lessons.splice(lessonIndex, 1);
       if (hour.lessons.length === 0) {
@@ -264,7 +254,7 @@ const editLesson = async (
           text: error?.response?.data?.message || 'Silinmə zamanı xəta baş verdi.',
           confirmButtonColor: '#2563eb',
         });
-        fetchSchedule(); // Xəta olduqda yenidən yüklə
+        fetchSchedule(); 
       }
     }
   };
@@ -320,8 +310,8 @@ const value: ScheduleContextType = {
     deleteLesson,
     toggleBlockStatus,
     refreshSchedule: fetchSchedule,
-    loading,        // BURADA ƏLAVƏ ET
-    hasError        // BURADA ƏLAVƏ ET
+    loading,        
+    hasError        
   };
   return <ScheduleContext.Provider value={value}>{children}</ScheduleContext.Provider>;
 };

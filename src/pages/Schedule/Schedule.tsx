@@ -1,36 +1,61 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Header from '../../components/Header';
-import ScheduleTable from '../../components/ScheduleTable/ScheduleTable';
+import ScheduleTable, { ScheduleTableHandle } from '../../components/ScheduleTable/ScheduleTable';
 import LessonModal from '../../components/ScheduleModal/LessonModal';
 import ContextMenu from '../../components/ContextMenu';
 import { useSchedule } from '../../context/ScheduleContext';
 import EditLessonModal from '../../components/ScheduleModal/EditLessonModal';
+import usePermissions from '../../hooks/usePermissions';
 import {
   Calendar,
   BookOpen,
   Users,
-  Clock,
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 function Schedule() {
   const { scheduleData, refreshSchedule } = useSchedule();
 
+  const scheduleTableRef = useRef<ScheduleTableHandle | null>(null);
+
+  const [savedScroll, setSavedScroll] = useState({
+    windowX: 0,
+    windowY: 0,
+    tableLeft: 0,
+    tableTop: 0,
+  });
+
+  const saveScrollPositions = () => {
+    const tablePos = scheduleTableRef.current?.getScrollPosition() || { left: 0, top: 0 };
+    setSavedScroll({
+      windowX: window.scrollX,
+      windowY: window.scrollY,
+      tableLeft: tablePos.left,
+      tableTop: tablePos.top,
+    });
+  };
+
+  const restoreScrollPositions = () => {
+    requestAnimationFrame(() => {
+      scheduleTableRef.current?.setScrollPosition({ left: savedScroll.tableLeft, top: savedScroll.tableTop });
+      window.scrollTo(savedScroll.windowX, savedScroll.windowY);
+    });
+  };
+
   const [modalData, setModalData] = useState({
     isOpen: false,
     groupId: null,
-    groupName: null, // Added for group name
+    groupName: null,
     dayId: null,
-    dayName: null, // Added for day name
+    dayName: null,
     hourId: null,
-    hourName: null, // Added for hour name
+    hourName: null,
     lessonIndex: null,
     lesson: null,
     mode: 'add',
     weekTypeId: null,
-    schedule_group_id: null, // Added for schedule group ID
+    schedule_group_id: null,
   });
 
   const [contextMenu, setContextMenu] = useState({
@@ -43,44 +68,38 @@ function Schedule() {
     weekTypeId: null,
   });
 
-  // Current week type calculation
+  const canEditSchedule = usePermissions('edit_schedule');
+  const canAddSchedule = usePermissions('add_schedule');
+
+
   const getCurrentWeekType = () => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
 
-    // Academic year starts on September 15
-    const semesterStart = new Date(currentYear, 8, 15); // September 15
-    const secondSemesterStart = new Date(currentYear + 1, 1, 16); // February 16 of next year
-
+    const semesterStart = new Date(currentYear, 8, 15);
+    const secondSemesterStart = new Date(currentYear + 1, 1, 16);
     let startDate;
 
-    // Determine which semester we're in
     if (currentDate >= semesterStart && currentDate < secondSemesterStart) {
-      // First semester (September 15 - February 15)
       startDate = semesterStart;
     } else if (currentDate >= secondSemesterStart) {
-      // Second semester (February 16 onwards)
       startDate = secondSemesterStart;
     } else {
-      // Before September 15, use previous year's second semester start
-      startDate = new Date(currentYear, 1, 16); // February 16 of current year
+      startDate = new Date(currentYear, 1, 16);
     }
 
-    // Calculate weeks passed since start
     const timeDiff = currentDate.getTime() - startDate.getTime();
     const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
     const weeksPassed = Math.floor(daysDiff / 7);
 
-    // First week is always "Üst", then alternates
     return weeksPassed % 2 === 0 ? 'Üst' : 'Alt';
   };
 
-  // Schedule komponentinin içində, getCurrentWeekType funksiyasının altına əlavə edin:
   const getCurrentSemester = () => {
     const currentDate = new Date();
     const year = currentDate.getFullYear();
-    const fallStart = new Date(year, 8, 15); // 15 sentyabr
-    const springStart = new Date(year + 1, 1, 16); // 16 fevral növbəti il
+    const fallStart = new Date(year, 8, 15);
+    const springStart = new Date(year + 1, 1, 16);
 
     if (currentDate >= fallStart && currentDate < springStart) {
       return 'Payız Semestri';
@@ -93,13 +112,13 @@ function Schedule() {
 
   const currentWeekType = getCurrentWeekType();
 
-  // This function now can be called without specific IDs to open a generic add modal
   const handleAddLesson = (
     groupId = null,
     dayId = null,
     hourId = null,
     weekTypeId = 1,
   ) => {
+    saveScrollPositions();
     let groupName = null;
     let dayName = null;
     let hourName = null;
@@ -121,16 +140,16 @@ function Schedule() {
     setModalData({
       isOpen: true,
       groupId,
-      groupName, // Pass group name
+      groupName,
       dayId,
-      dayName, // Pass day name
+      dayName,
       hourId,
-      hourName, // Pass hour name
+      hourName,
       lessonIndex: null,
       lesson: null,
       weekTypeId,
       mode: 'add',
-      schedule_group_id: null, // Ensure it's null for add mode
+      schedule_group_id: null,
     });
   };
 
@@ -157,10 +176,21 @@ function Schedule() {
     lessonIndex,
     weekTypeId = 1,
   ) => {
+    saveScrollPositions();
     const group = scheduleData.groups.find((g) => g.group_id === groupId);
     const day = group?.days[dayId];
     const hour = day?.hours.find((h) => h.hour_id === hourId);
     const lesson = hour?.lessons[lessonIndex] || null;
+
+    if (lesson?.parent_group) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Redaktə mümkün deyil',
+        text: 'Bu dərs birləşdirilmiş qrupdandır və redaktə edilə bilməz.',
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
 
     const groupName = group ? group.group_name : null;
     const dayName = day ? day.day_name : null;
@@ -169,16 +199,16 @@ function Schedule() {
     setModalData({
       isOpen: true,
       groupId,
-      groupName, // Pass group name
+      groupName,
       dayId,
-      dayName, // Pass day name
+      dayName,
       hourId,
-      hourName, // Pass hour name
+      hourName,
       lessonIndex,
       lesson,
       weekTypeId,
-      mode: 'edit', // Set mode to 'edit'
-      schedule_group_id: lesson?.schedule_group_id || null, // <--- HERE'S THE CHANGE
+      mode: 'edit',
+      schedule_group_id: lesson?.schedule_group_id || null,
     });
   };
 
@@ -230,7 +260,6 @@ function Schedule() {
     handleCloseContextMenu();
   };
 
-  // Calculate statistics
   const totalLessons = scheduleData.groups.reduce((total, group) => {
     return (
       total +
@@ -249,7 +278,6 @@ function Schedule() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-indigo-50 relative overflow-hidden">
-      {/* Animated Background Pattern */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-full opacity-40">
           <div className="absolute top-20 left-20 w-2 h-2 bg-blue-200 rounded-full animate-ping" />
@@ -262,14 +290,11 @@ function Schedule() {
         </div>
       </div>
 
-      {/* Modern Header Section */}
       <div className="">
         <div className="bg-gradient-to-r from-blue-100/90 via-indigo-100/90 to-purple-100/90 backdrop-blur-md border-b border-blue-200/50">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-200/20 via-purple-200/20 to-indigo-200/20" />
-          {/* Header */}
           <Header onAddLesson={() => handleAddLesson()} />
 
-          {/* Enhanced Stats Bar */}
           <div className="relative px-4 sm:px-8 pb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex flex-col sm:flex-row items-stretch gap-4 sm:gap-8 w-full">
@@ -318,8 +343,8 @@ function Schedule() {
                 <div className="flex items-center gap-3 bg-white/40 backdrop-blur-md rounded-lg px-4 py-3 sm:px-6 sm:py-3 border border-white/60 shadow-md w-full sm:w-auto">
                   <div
                     className={`p-2 rounded-lg ${currentWeekType === 'Üst'
-                        ? 'bg-violet-400'
-                        : 'bg-pink-400'
+                      ? 'bg-violet-400'
+                      : 'bg-pink-400'
                       }`}
                   >
                     {currentWeekType === 'Üst' ? (
@@ -334,8 +359,8 @@ function Schedule() {
                     </p>
                     <p
                       className={`text-lg font-bold ${currentWeekType === 'Üst'
-                          ? 'text-purple-800'
-                          : 'text-rose-800'
+                        ? 'text-purple-800'
+                        : 'text-rose-800'
                         }`}
                     >
                       {currentWeekType} Həftə
@@ -351,38 +376,40 @@ function Schedule() {
         </div>
       </div>
 
-      {/* Main Content */}
-<main className="">
-  <div className="schedule-print-area">
-    <ScheduleTable
-      onAddLesson={handleAddLesson}
-      onOpenContextMenu={handleOpenContextMenu}
-      onEditLesson={handleEditLesson}
-    />
-  </div>
-</main>
+      <main className="">
+        <div className="schedule-print-area">
+          <ScheduleTable
+            ref={scheduleTableRef}
+            onAddLesson={handleAddLesson}
+            onOpenContextMenu={handleOpenContextMenu}
+            onEditLesson={handleEditLesson}
+          />
+        </div>
+      </main>
 
-      {/* Enhanced Floating Action Panel */}
       <div className="fixed bottom-8 left-8 z-30"></div>
-
-      {/* Modals and Context Menu */}
-      {modalData.mode === 'add' ? (
+      {modalData.mode === 'add' && canAddSchedule ? (
         <LessonModal
           isOpen={modalData.isOpen}
           onClose={handleCloseModal}
           modalData={modalData}
           mode={modalData.mode}
-          onSuccess={refreshSchedule}
+          onSuccess={() => Promise.resolve(refreshSchedule()).then(restoreScrollPositions)}
         />
-      ) : (
-        <EditLessonModal
-          isOpen={modalData.isOpen}
-          onClose={handleCloseModal}
-          modalData={modalData}
-          mode={modalData.mode}
-          onSuccess={refreshSchedule}
-        />
-      )}
+      )
+        // 2. Əks halda, əgər rejim 'add' deyilsə (yəni 'edit' və ya başqa bir şeydirsə) VƏ istifadəçinin dəyişdirmə icazəsi varsa:
+        : modalData.mode !== 'add' && canEditSchedule ? (
+          <EditLessonModal
+            isOpen={modalData.isOpen}
+            onClose={handleCloseModal}
+            modalData={modalData}
+            mode={modalData.mode}
+            onSuccess={() => Promise.resolve(refreshSchedule()).then(restoreScrollPositions)}
+          />
+        )
+          // 3. Əks halda (əgər icazə yoxdursa və ya modalData.isOpen = false) heç nə göstərmə.
+          : null}
+
       <ContextMenu
         isOpen={contextMenu.isOpen}
         position={contextMenu.position}

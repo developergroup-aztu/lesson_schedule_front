@@ -22,6 +22,7 @@ import {
   UserCheck,
   GroupIcon,
   Merge,
+  Printer,
 } from 'lucide-react';
 import Logo from '../../images/Logo.png';
 import { LiaChalkboardTeacherSolid } from "react-icons/lia";
@@ -30,6 +31,7 @@ import { useAuth } from '../../Context/AuthContext';
 // Import the usePermissions hook
 import usePermissions from '../../hooks/usePermissions'; 
 import { BiGroup } from 'react-icons/bi';
+import path from 'path';
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -53,15 +55,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
 
   const { user } = useAuth(); // You still need user for roles if your permissions depend on them implicitly, but not directly for menu visibility here.
 
-  // Use the usePermissions hook to get specific permissions
   const canViewDashboard = usePermissions('view_dashboards');
   const canViewFaculties = usePermissions('view_faculties');
-  const canViewSchedules = usePermissions('view_schedules'); // Assuming a permission for schedules
+  const canViewSchedules = usePermissions('view_schedules'); 
   const canViewRooms = usePermissions('view_rooms');
   const canViewTeachers = usePermissions('view_teachers');
   const canViewUsers = usePermissions('view_users');
   const canViewRoles = usePermissions('view_roles');
   const canViewPermissions = usePermissions('view_permissions');
+  const canViewPrints = usePermissions('view_prints');
+  const canViewMergeGroups = usePermissions('view_group_merges');
 
   // Close on click outside
   useEffect(() => {
@@ -129,7 +132,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       path: '/merge-groups',
       label: 'Qrup birləşdirmə',
       icon: <Merge className="w-5 h-5" />,
-      permission: true, // Assuming all authenticated users can access this
+      permission: canViewMergeGroups, // Assuming all authenticated users can access this
     },
     {
       path: '/rooms',
@@ -161,6 +164,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       icon: <Settings className="w-5 h-5" />,
       permission: canViewPermissions, 
     },
+    {
+      path: '/prints',
+      label: 'Çap',
+      icon: <Printer className="w-5 h-5" />,
+      permission: canViewPrints, // Assuming all authenticated users can access this
+    }
   ];
 
   return (

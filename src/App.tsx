@@ -43,6 +43,7 @@ import RoomSchedule from './pages/Room/RoomSchedule';
 import MergeGroups from './pages/Merge/MergeGroups';
 
 import { ScheduleProvider } from './context/ScheduleContext';
+import Print from './pages/Print/Print';
 
 function App() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -78,7 +79,7 @@ function App() {
                   <Routes>
                     {/* Common Pages */}
                     <Route path="*" element={<NotFound />} />
-                    <Route path='/dashboard' element={<Dashboard />} />
+                    <Route path='/dashboard' element={<Dashboard /> } />
                     <Route path="profile" element={<Profile />} />
                     <Route path="forms/form-elements" />
 
@@ -170,7 +171,7 @@ function App() {
                     <Route
                       path="/teachers/:id"
                       element={
-                        <ProtectedRoute requiredPermission="view_teacher_schedule">
+                        <ProtectedRoute requiredPermission="view_teacher">
                           <TeacherSchedule />
                         </ProtectedRoute>
                       }
@@ -178,7 +179,7 @@ function App() {
                     <Route
                       path="/rooms/:id"
                       element={
-                        <ProtectedRoute requiredPermission="view_room_schedule">
+                        <ProtectedRoute requiredPermission="view_room">
                           <RoomSchedule />
                         </ProtectedRoute>
                       }
@@ -205,18 +206,28 @@ function App() {
                     <Route
                       path="/merge-groups"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute requiredPermission='view_group_merges'>
                           <MergeGroups />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                      <Route
+                      path="/prints"
+                      element={
+                        <ProtectedRoute requiredPermission="view_prints">
+                          <Print />
                         </ProtectedRoute>
                       }
                     />
 
 
 
+
                     <Route
                       path="/faculties/:id"
                       element={
-                        <ProtectedRoute requiredPermission="view_faculty_schedule">
+                        <ProtectedRoute requiredPermission="view_faculty">
                           <ScheduleProvider>
                             <Schedule />
                           </ScheduleProvider>

@@ -177,17 +177,7 @@ const PermissionsTable: React.FC = () => {
     return pages;
   };
 
-  // Only show the full-page error if there's an error after the initial load or a critical error.
-  // The loading state will now be handled within the table.
-  if (error && !loading) { // Check !loading to ensure the error isn't just a temporary state during a fetch
-    return (
-      <div className="flex justify-center items-center h-[80vh]">
-        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg">
-          <p className="text-red-600 dark:text-red-400 text-center">{error}</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-6">

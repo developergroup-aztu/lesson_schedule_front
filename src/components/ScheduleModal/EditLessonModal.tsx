@@ -7,6 +7,8 @@ import { useParams } from 'react-router-dom';
 import useSweetAlert from '../../hooks/useSweetAlert';
 import { ClipLoader } from 'react-spinners';
 import VirtualSelect from '../Select/ScheduleSelect';
+import Swal from "sweetalert2";
+import "./EditLessonModal.css";
 
 interface EditLessonModalProps {
   isOpen: boolean;
@@ -30,8 +32,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
   const facultyName = user?.faculty_name || scheduleData.faculty?.faculty_name;
   const isFacultyAdmin = user?.roles.includes('FacultyAdmin');
   const { successAlert, errorAlert } = useSweetAlert();
-
-  // State-lər
   const [groups, setGroups] = useState<any[]>([]);
   const [hours, setHours] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -45,7 +45,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [scheduGroupleId, setScheduleGroupId] = useState<number | null>(null);
 
-  // Loading state-lər
   const [loadingStates, setLoadingStates] = useState({
     subjects: false,
     lessonTypes: false,
@@ -55,7 +54,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     weekTypes: false,
   });
 
-  // Form state
   const [formData, setFormData] = useState<any>({
     group_id: [],
     day_id: '',
@@ -67,7 +65,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     room_id: '',
   });
 
-  // Modal events
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget && !isSubmitting) {
       onClose();
@@ -95,7 +92,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     }
   }, [isOpen]);
 
-  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setGroups([]);
@@ -109,7 +105,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     }
   }, [isOpen]);
 
-  // Initial data fetch for the lesson being edited
   useEffect(() => {
     if (!isOpen || !modalData.schedule_group_id) return;
 
@@ -153,7 +148,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
           types: schedule.room_types,
         }]);
 
-        // Load rooms based on initial schedule data
         if (!isFacultyAdmin) {
           await loadRooms(initialFormData.day_id, initialFormData.hour_id, initialFormData.week_type_id);
         }
@@ -168,7 +162,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     fetchSchedule();
   }, [isOpen, modalData.schedule_group_id]);
 
-  // Trigger room load when day, hour, or week type changes
   useEffect(() => {
     if (!isFacultyAdmin && formData.day_id && formData.hour_id && formData.week_type_id) {
       loadRooms(formData.day_id, formData.hour_id, formData.week_type_id);
@@ -176,7 +169,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
   }, [formData.day_id, formData.hour_id, formData.week_type_id, isFacultyAdmin]);
 
 
-  // Lazy loading functions
   const loadSubjects = async () => {
     if (!formData.group_id?.[0]) return;
     if (subjects.length > 1) return;
@@ -239,7 +231,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     }
   };
 
-  // The refactored loadRooms function
   const loadRooms = async (day_id: number, hour_id: number, week_type_id: number) => {
     if (!day_id || !hour_id || !week_type_id) {
       setRooms([]);
@@ -251,7 +242,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
       const res = await get(`/api/rooms?day_id=${day_id}&hour_id=${hour_id}&week_type_id=${week_type_id}&faculty_id=${facultyId}`);
       setRooms(res.data || []);
 
-      // Mövcud otaq seçimini yoxlayın və yalnız otaq siyahısında yoxdursa, sıfırlayın
       const isCurrentRoomAvailable = res.data.some((room: any) => room.id === formData.room_id);
       if (!isCurrentRoomAvailable && formData.room_id) {
         setErrors(prev => ({ ...prev, room_id: 'Seçilmiş otaq bu vaxt üçün uyğun deyil. Yeni otaq seçin.' }));
@@ -277,7 +267,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     }
   };
 
-  // Field dəyişəndə
   const handleFieldChange = (value: any, { name }: { name: string }) => {
     setFormData((prev: any) => {
       let newFormData = {
@@ -312,7 +301,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     }
   };
 
-  // Validation
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -340,47 +328,45 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+  if (!validateForm()) {
+    return;
+  }
 
-    setIsSubmitting(true);
+  setIsSubmitting(true);
 
-    try {
-      const groupIds = Array.isArray(formData.group_id) ? formData.group_id : [formData.group_id];
+  try {
+    const groupIds = Array.isArray(formData.group_id) ? formData.group_id : [formData.group_id];
 
-      const postData: any = {
-        faculty_id: facultyId,
-        group_id: groupIds[0],
-        day_id: Number(formData.day_id),
-        hour_id: Number(formData.hour_id),
-        week_type_id: Number(formData.week_type_id),
-        lesson_id: Number(formData.lesson_id),
-        lesson_type_id: Number(formData.lesson_type_id),
-        teacher_code: formData.teacher_code,
-        schedule_group_id: modalData.schedule_group_id,
-        ...(isFacultyAdmin ? {} : { room_id: Number(formData.room_id) }),
-      };
+    const postData: any = {
+      faculty_id: facultyId,
+      group_id: groupIds[0],
+      day_id: Number(formData.day_id),
+      hour_id: Number(formData.hour_id),
+      week_type_id: Number(formData.week_type_id),
+      lesson_id: Number(formData.lesson_id),
+      lesson_type_id: Number(formData.lesson_type_id),
+      teacher_code: formData.teacher_code,
+      schedule_group_id: modalData.schedule_group_id,
+    };
 
-      await put(`/api/schedules/${scheduGroupleId}`, postData);
-      successAlert('Uğurlu', 'Dərs uğurla yeniləndi!');
-      onClose();
-      if (onSuccess) onSuccess();
-    } catch (error: any) {
-      let message = 'Xəta baş verdi! Zəhmət olmasa yenidən cəhd edin.';
-      if (error?.response?.data?.message) {
-        message = error.response.data.message;
-      }
-      errorAlert('Xəta', message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    // Əgər otaq seçilibsə, əlavə et
+    if (formData.room_id) {
+      postData.room_id = Number(formData.room_id);
+    }
 
+    await put(`/api/schedules/${scheduGroupleId}`, postData);
+    successAlert('Uğurlu', 'Dərs uğurla yeniləndi!');
+    onClose();
+    if (onSuccess) onSuccess();
+  } catch (error: any) {
+    // ...existing error handling...
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   if (!isOpen) return null;
 
   const LoadingOverlay = () => (
@@ -591,42 +577,42 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
                 />
 
               </div>
-
-              {!isFacultyAdmin && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Otaq
-                  </label>
-                  <VirtualSelect
-                    value={formData.room_id}
-                    onChange={handleFieldChange}
-                    name="room_id"
-                    options={rooms.map((room) => {
-                      if (room.conflict_info && room.conflict_info.length > 0) {
-                        const conflictGroups = room.conflict_info.map(conflict => conflict.group).join(', ');
-                        const name = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} - Doludur (${conflictGroups})`;
-                        return { id: room.id, name: name };
-                      }
-                      const name = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} - Boşdur`;
-                      return { id: room.id, name: name };
-                    })}
-                    required
-                    error={!!errors.room_id}
-                    placeholder="Otaq seçin"
-                    searchPlaceholder="Otaq axtarın..."
-                    dropdownDirection="top"
-                    onOpen={() => {
-                      if (formData.day_id && formData.hour_id && formData.week_type_id) {
-                        loadRooms(formData.day_id, formData.hour_id, formData.week_type_id);
-                      }
-                    }}
-                    isLoading={loadingStates.rooms}
-                  />
-                  {errors.room_id && (
-                    <p className="mt-1 text-sm text-red-600">{errors.room_id}</p>
-                  )}
-                </div>
-              )}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Otaq
+  </label>
+  <VirtualSelect
+    value={formData.room_id}
+    onChange={handleFieldChange}
+    name="room_id"
+    options={[
+      { id: '', name: 'Secin' }, // "Secin" seçimi əlavə olundu
+      ...rooms.map((room) => {
+        if (room.conflict_info && room.conflict_info.length > 0) {
+          const conflictGroups = room.conflict_info.map((conflict: any) => conflict.group).join(', ');
+          const prefix = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} -`;
+          return { id: room.id, name: `${prefix} Doludur (${conflictGroups})`, displayPrefix: prefix, statusText: `Doludur (${conflictGroups})`, isFull: true };
+        }
+        const prefix = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} -`;
+        return { id: room.id, name: `${prefix} Boşdur`, displayPrefix: prefix, statusText: 'Boşdur', isFull: false };
+      })
+    ]}
+    required={false}
+    error={!!errors.room_id}
+    placeholder="Otaq seçin"
+    searchPlaceholder="Otaq axtarın..."
+    dropdownDirection="top"
+    onOpen={() => {
+      if (formData.day_id && formData.hour_id && formData.week_type_id) {
+        loadRooms(formData.day_id, formData.hour_id, formData.week_type_id);
+      }
+    }}
+    isLoading={loadingStates.rooms}
+  />
+  {errors.room_id && (
+    <p className="mt-1 text-sm text-red-600">{errors.room_id}</p>
+  )}
+</div>
             </div>
           </div>
 

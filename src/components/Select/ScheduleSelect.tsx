@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronDown, Search, Loader2, X } from 'lucide-react'; // Import X for close button on tags
+import { ChevronDown, Search, Loader2, X } from 'lucide-react';
 
 interface VirtualSelectProps {
-  value: any | any[]; // Can be a single ID or an array of IDs
+  value: any | any[];
   onChange: (value: any | any[], meta: { name: string }) => void;
   name: string;
   options?: any[];
@@ -15,7 +15,8 @@ interface VirtualSelectProps {
   dropdownDirection?: 'top' | 'bottom';
   onOpen?: () => void;
   isLoading?: boolean;
-  multiple?: boolean; // New prop for multi-select
+  multiple?: boolean;
+  excludeValues?: any[]; // Yeni prop - digər yerlərdə seçilmiş dəyərləri exclude etmək üçün
 }
 
 const VirtualSelect: React.FC<VirtualSelectProps> = ({
@@ -32,7 +33,8 @@ const VirtualSelect: React.FC<VirtualSelectProps> = ({
   dropdownDirection = 'bottom',
   onOpen,
   isLoading = false,
-  multiple = false, // Default to false (single select)
+  multiple = false,
+  excludeValues = [], // Yeni prop
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -50,6 +52,16 @@ const VirtualSelect: React.FC<VirtualSelectProps> = ({
       .toLowerCase()
       .includes(search.toLowerCase()),
   );
+
+  // When multiple, hide options that are already selected OR excluded from other selections
+  const filteredAvailable = multiple
+    ? filtered.filter((opt) => {
+        const optionId = (opt.id || opt.value)?.toString();
+        const isCurrentlySelected = currentValues.some((val) => val?.toString() === optionId);
+        const isExcluded = excludeValues.some((val) => val?.toString() === optionId);
+        return !isCurrentlySelected && !isExcluded;
+      })
+    : filtered;
 
   // Get selected option(s) for display
   const selectedOptions = options.filter((opt) =>
@@ -73,7 +85,7 @@ const VirtualSelect: React.FC<VirtualSelectProps> = ({
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside); // Cleanup on unmount or when isOpen becomes false
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, handleClickOutside]);
 
   // Effect for Escape key handling
@@ -94,7 +106,6 @@ const VirtualSelect: React.FC<VirtualSelectProps> = ({
   // Focus search input when dropdown opens
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      // Use requestAnimationFrame to ensure the input is rendered before focusing
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [isOpen]);
@@ -104,7 +115,7 @@ const VirtualSelect: React.FC<VirtualSelectProps> = ({
 
     if (!isOpen) {
       if (onOpen) {
-        onOpen(); // Call onOpen only when opening
+        onOpen();
       }
       setIsOpen(true);
       setSearch('');
@@ -128,13 +139,13 @@ const VirtualSelect: React.FC<VirtualSelectProps> = ({
       onChange(newValues, { name });
     } else {
       onChange(optionId, { name });
-      setIsOpen(false); // Close for single select after selection
+      setIsOpen(false);
       setSearch('');
     }
   };
 
   const handleRemoveTag = (optionId: any, event: React.MouseEvent) => {
-    event.stopPropagation(); // Prevent the main button from toggling
+    event.stopPropagation();
     if (disabled) return;
     
     const newValues = currentValues.filter(val => val?.toString() !== optionId?.toString());
@@ -154,12 +165,12 @@ const VirtualSelect: React.FC<VirtualSelectProps> = ({
           }
           ${error ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
           ${isOpen ? 'border-blue-500 ring-2 ring-500' : ''}
-          ${multiple && selectedOptions.length > 0 ? 'h-auto min-h-[42px] py-2' : ''} /* Adjust height for tags */
+          ${multiple && selectedOptions.length > 0 ? 'h-auto min-h-[42px] py-2' : ''}
         `}
         onClick={handleToggle}
         disabled={disabled}
       >
-        <div className="flex flex-wrap gap-1 items-center flex-1 pr-6"> {/* Added pr-6 to give space for chevron */}
+        <div className="flex flex-wrap gap-1 items-center flex-1 pr-6">
           {multiple && selectedOptions.length > 0 ? (
             selectedOptions.map((opt) => (
               <span
@@ -177,14 +188,14 @@ const VirtualSelect: React.FC<VirtualSelectProps> = ({
               </span>
             ))
           ) : (
- <span className={`text-sm ${selectedOptions.length > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
-            {selectedOptions.length > 0
+            <span className={`text-sm ${selectedOptions.length > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
+              {selectedOptions.length > 0
                 ? selectedOptions[0][labelKey] || selectedOptions[0].name || selectedOptions[0].label
                 : placeholder}
-        </span>
+            </span>
           )}
         </div>
-        <div className="flex items-center gap-2 ml-auto"> {/* Aligned to right */}
+        <div className="flex items-center gap-2 ml-auto">
           {isLoading && <Loader2 size={14} className="animate-spin text-gray-400" />}
           <ChevronDown
             size={16}
@@ -223,12 +234,12 @@ const VirtualSelect: React.FC<VirtualSelectProps> = ({
                 <Loader2 size={20} className="animate-spin text-blue-600 mx-auto mb-2" />
                 <span className="text-gray-500 text-sm">Yüklənir...</span>
               </div>
-            ) : filtered.length === 0 ? (
+            ) : filteredAvailable.length === 0 ? (
               <div className="p-3 text-gray-500 text-sm text-center">
                 Heç nə tapılmadı
               </div>
             ) : (
-              filtered.map((opt) => (
+              filteredAvailable.map((opt) => (
                 <div
                   key={(opt.id || opt.value)?.toString()}
                   className={`
@@ -241,7 +252,16 @@ const VirtualSelect: React.FC<VirtualSelectProps> = ({
                   `}
                   onClick={() => handleSelect(opt)}
                 >
-                  <span className='text-sm'>{opt[labelKey] || opt.name || opt.label}</span>
+                  {opt.displayPrefix || opt.statusText ? (
+                    <span className='text-sm'>
+                      {opt.displayPrefix}{' '}
+                      <span className={opt.isFull ? 'text-red-600 font-medium' : 'text-green-600'}>
+                        {opt.statusText}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className='text-sm'>{opt[labelKey] || opt.name || opt.label}</span>
+                  )}
                 </div>
               ))
             )}

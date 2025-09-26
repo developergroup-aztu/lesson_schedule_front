@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Edit, Trash, Lock, Unlock } from 'lucide-react';
 import { useSchedule } from '../context/ScheduleContext';
 import Swal from 'sweetalert2';
+import usePermissions from '../hooks/usePermissions';
 
 interface ContextMenuProps {
   isOpen: boolean;
@@ -30,6 +31,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 }) => {
   const { deleteLesson, toggleBlockStatus, scheduleData } = useSchedule();
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const canEditLesson = usePermissions('edit_schedule');
+  const canDeleteLesson = usePermissions('delete_schedule');
+  const canLockLesson = usePermissions('lock_schedule');
+  const canAddLesson = usePermissions('schedule_lock');
+
+
+
 
   // Function to find the current lesson
   const getCurrentLesson = () => {
@@ -76,7 +85,21 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   if (!isOpen) return null;
 
   const handleEdit = () => {
-    console.log('Redakte et kliklendi!');
+    const lesson = getCurrentLesson();
+
+    // Əgər parent_group varsa, redaktə etməyə icazə vermə
+    if (lesson?.parent_group) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Redaktə mümkün deyil',
+        text: 'Bu dərs birləşdirilmiş qrupdandır və redaktə edilə bilməz.',
+        confirmButtonColor: '#2563eb',
+      });
+      onClose();
+      return;
+    }
+
+    console.log('Redaktə et kliklendi!');
     onEdit();
     onClose();
   };
@@ -91,9 +114,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       cancelButtonColor: '#3085d6',
       confirmButtonText: 'Bəli, sil',
       cancelButtonText: 'Ləğv et',
-       customClass: {
-      container: 'my-swal-zindex', // A custom class for the alert container
-    }
+      customClass: {
+        container: 'my-swal-zindex', // A custom class for the alert container
+      }
     });
     if (result.isConfirmed) {
       await deleteLesson(groupId, dayId, hourId, lessonIndex);
@@ -128,36 +151,51 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       className={`bg-[#ffffff2e] backdrop-blur-md rounded-md shadow-lg border border-gray-200 py-1 w-48 ${className}`}
       style={menuStyle}
     >
-      <button
-        onClick={handleEdit}
-        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-      >
-        <Edit size={16} className="mr-2" />
-        <span>Redaktə et</span>
-      </button>
-      <button
-        onClick={handleDelete}
-        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
-      >
-        <Trash size={16} className="mr-2" />
-        <span>Sil</span>
-      </button>
-      <button
-        onClick={handleToggleBlock}
-        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-      >
-        {isLessonBlocked() ? (
-          <>
-            <Unlock size={16} className="mr-2" />
-            <span>Kilidi aç</span>
-          </>
-        ) : (
-          <>
-            <Lock size={16} className="mr-2" />
-            <span>Kilidlə</span>
-          </>
-        )}
-      </button>
+      {
+        canEditLesson && (
+          <button
+            onClick={handleEdit}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+          >
+            <Edit size={16} className="mr-2" />
+            <span>Redaktə et</span>
+          </button>
+        )
+      }
+
+      {
+        canDeleteLesson && (
+          <button
+            onClick={handleDelete}
+            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+          >
+            <Trash size={16} className="mr-2" />
+            <span>Sil</span>
+          </button>
+        )
+      }
+
+      {
+        canLockLesson && (
+          <button
+            onClick={handleToggleBlock}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+          >
+            {isLessonBlocked() ? (
+              <>
+                <Unlock size={16} className="mr-2" />
+                <span>Kilidi aç</span>
+              </>
+            ) : (
+              <>
+                <Lock size={16} className="mr-2" />
+                <span>Kilidlə</span>
+              </>
+            )}
+          </button>
+        )
+      }
+
     </div>
   );
 };

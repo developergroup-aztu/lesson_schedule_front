@@ -1,4 +1,4 @@
-import React, { useEffect, useState, forwardRef, useCallback } from 'react';
+import React, { useEffect, useState, forwardRef, useCallback, useMemo, useRef, useImperativeHandle } from 'react';
 import { useSchedule } from '../../context/ScheduleContext';
 import TableHeader from './TableHeader';
 import ScheduleCell from './ScheduleCell';
@@ -9,12 +9,17 @@ import type { Hour as HourType } from '../../types';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../Context/AuthContext';
 import { createPortal } from 'react-dom';
-import { useRef } from 'react';
+ 
 
 // Key for localStorage
 const LOCAL_STORAGE_STATS_KEY = 'scheduleStatsPanelVisible';
 
-const ScheduleTable = forwardRef<HTMLDivElement, {
+export type ScheduleTableHandle = {
+  getScrollPosition: () => { left: number; top: number };
+  setScrollPosition: (pos: { left?: number; top?: number }) => void;
+};
+
+const ScheduleTable = forwardRef<ScheduleTableHandle, {
   onAddLesson: (...args: any[]) => void;
   onEditLesson: (...args: any[]) => void;
   onOpenContextMenu: (...args: any[]) => void;
@@ -117,13 +122,17 @@ const ScheduleTable = forwardRef<HTMLDivElement, {
   const morningHourIds = hours.slice(0, 3).map((h) => h.id);
   const afternoonHourIds = hours.slice(3, 6).map((h) => h.id);
 
-  // Search filtered options
-  const searchFilteredGroups = groups.filter(g => 
-    g.group_name.toLowerCase().includes(groupSearch.toLowerCase())
+  // Memoized search filtered options - Bu performans problemini çözüyor
+  const searchFilteredGroups = useMemo(() => 
+    groups.filter(g => 
+      g.group_name.toLowerCase().includes(groupSearch.toLowerCase())
+    ), [groups, groupSearch]
   );
 
-  const searchFilteredHours = hours.filter(h => 
-    h.time.toLowerCase().includes(hourSearch.toLowerCase())
+  const searchFilteredHours = useMemo(() => 
+    hours.filter(h => 
+      h.time.toLowerCase().includes(hourSearch.toLowerCase())
+    ), [hours, hourSearch]
   );
 
   // Find lessons helper
@@ -194,7 +203,7 @@ const MultiSelectDropdown = ({
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setPosition({
-        top: rect.bottom, // `fixed` üçün `window.scrollY` əlavə etməyə ehtiyac yoxdur
+        top: rect.bottom,
         left: rect.left,
         width: rect.width
       });
@@ -207,7 +216,7 @@ const MultiSelectDropdown = ({
     <div
       className="bg-white border border-slate-200 rounded-xl shadow-xl z-[9999] max-h-64 overflow-auto"
       style={{
-        position: "fixed", // `fixed` mövqeyi
+        position: "fixed",
         top: position.top,
         left: position.left,
         width: position.width
@@ -434,8 +443,27 @@ const MultiSelectDropdown = ({
   // New toggle maximize function
   const handleToggleMaximize = () => {
     setTableMaximized(prev => !prev);
-    // You can add logic here to handle full screen API if needed
   };
+
+  // Ref to inner scrollable container
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Expose imperative API for parent to control scroll
+  useImperativeHandle(ref, () => ({
+    getScrollPosition: () => {
+      const el = scrollContainerRef.current;
+      return {
+        left: el ? el.scrollLeft : 0,
+        top: el ? el.scrollTop : 0,
+      };
+    },
+    setScrollPosition: (pos: { left?: number; top?: number }) => {
+      const el = scrollContainerRef.current;
+      if (!el) return;
+      if (typeof pos.left === 'number') el.scrollLeft = pos.left;
+      if (typeof pos.top === 'number') el.scrollTop = pos.top;
+    },
+  }), []);
 
   // Unified table
   const renderUnifiedTable = () => (
@@ -460,7 +488,7 @@ const MultiSelectDropdown = ({
         </button>
       </div>
 
-      <div className={`schedule-table-scroll overflow-auto ${
+      <div ref={scrollContainerRef} className={`schedule-table-scroll overflow-auto ${
         tableMaximized ? 'h-[98vh]' : 'max-h-[80vh]'
       }`}>
         <table className="border-collapse w-full">
@@ -527,10 +555,9 @@ const MultiSelectDropdown = ({
 
   return (
     <div
-      ref={ref}
-  className={`schedule-print-area min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 ${tableMaximized ? 'fixed inset-0 overflow-hidden z-[9999]' : ''}`}
+  className={`schedule-area min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 ${tableMaximized ? 'fixed inset-0 overflow-hidden z-[9999]' : ''}`}
     >
-      <div className="fixed inset-0 overflow-hidden pointer-events-none no-print">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200/20 to-indigo-200/20 rounded-full blur-3xl animate-pulse" />
         <div
           className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-200/20 to-pink-200/20 rounded-full blur-3xl animate-pulse"
@@ -563,7 +590,7 @@ const MultiSelectDropdown = ({
 
       {/* Floating Stats Panel */}
       {showStatsPanel ? (
-        <div className={`fixed bottom-8 right-8 bg-white/80 backdrop-blur-xl rounded-2xl border border-white/70 shadow-2xl p-6 z-20 no-print ${tableMaximized ? 'hidden' : ''}`}>
+        <div className={`fixed bottom-8 right-8 bg-white/80 backdrop-blur-xl rounded-2xl border border-white/70 shadow-2xl p-6 z-20 ${tableMaximized ? 'hidden' : ''}`}>
           <button
             onClick={handleToggleStatsPanel}
             className="absolute top-2 right-2 p-1 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors duration-200"
@@ -594,7 +621,7 @@ const MultiSelectDropdown = ({
       ) : (
         <button
           onClick={handleToggleStatsPanel}
-          className={`fixed bottom-8 right-8 p-3 bg-white/90 backdrop-blur-md rounded-full shadow-lg border border-white/70 text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all duration-300 z-20 no-print flex items-center justify-center gap-2 text-sm font-medium ${tableMaximized ? 'hidden' : ''}`}
+          className={`fixed bottom-8 right-8 p-3 bg-white/90 backdrop-blur-md rounded-full shadow-lg border border-white/70 text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-all duration-300 z-20 flex items-center justify-center gap-2 text-sm font-medium ${tableMaximized ? 'hidden' : ''}`}
           aria-label="Open stats panel"
           title="Open Stats Panel"
         >

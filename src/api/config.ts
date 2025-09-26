@@ -1,9 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://10.2.23.63/public';
+const API_BASE_URL = 'https://cedvel.aztu.edu.az';
+
+
+
 
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL,   
   headers: {
     'Content-Type': 'application/json',
   },

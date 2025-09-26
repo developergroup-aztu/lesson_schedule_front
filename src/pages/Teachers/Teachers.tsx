@@ -6,6 +6,7 @@ import { ClipLoader } from 'react-spinners';
 import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa6';
 import Breadcrumb from '../../components/Breadcrumbs/Breadcrumb';
 import { useDebounce } from '../../hooks/useDebounce'; // Assuming you have this hook
+import usePermissions from '../../hooks/usePermissions';
 
 interface Teacher {
   id: number;
@@ -34,6 +35,8 @@ const Teachers: React.FC = () => {
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const canViewTeacherSchedule = usePermissions('view_teacher');
 
   // Sortable columns (these are now also the searchable columns for global search)
   const sortableColumns = [
@@ -234,7 +237,9 @@ const Teachers: React.FC = () => {
                   </div>
                 </th>
               ))}
-              <th className="py-4 px-6 border-b text-center font-semibold text-gray-700">Bax</th>
+              {
+                canViewTeacherSchedule && <th className="py-4 px-6 border-b text-center font-semibold text-gray-700">Bax</th>
+              }
             </tr>
           </thead>
           <tbody>
@@ -261,7 +266,9 @@ const Teachers: React.FC = () => {
                   <td className="py-3 px-6 border-b">{teacher.surname}</td>
                   <td className="py-3 px-6 border-b">{teacher.fin_code}</td>
                   <td className="py-3 px-6 border-b">{teacher.lesson_count}</td>
-                  <td className="py-3 px-6 border-b text-center">
+                 {
+                  canViewTeacherSchedule && (
+                     <td className="py-3 px-6 border-b text-center">
                     <button
                       className="bg-yellow-100 hover:bg-yellow-200 text-yellow-600 p-1.5 rounded-lg transition-colors"
                       onClick={() => navigate(`/teachers/${teacher.id}`)}
@@ -270,6 +277,8 @@ const Teachers: React.FC = () => {
                       <PiEyeLight className="w-5 h-5" />
                     </button>
                   </td>
+                  )
+                 }
                 </tr>
               ))
             )}
@@ -297,11 +306,10 @@ const Teachers: React.FC = () => {
                 <button
                   key={page}
                   onClick={() => handlePageChange(page)}
-                  className={`px-3 py-1 border rounded-lg ${
-                    page === currentPage
+                  className={`px-3 py-1 border rounded-lg ${page === currentPage
                       ? 'bg-indigo-600 text-white border-indigo-600 '
                       : 'bg-white text-slate-700 hover:bg-indigo-100 hover:border-indigo-100 border-stroke'
-                  }`}
+                    }`}
                 >
                   {page}
                 </button>

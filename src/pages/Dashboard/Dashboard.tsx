@@ -6,7 +6,8 @@ import {
   UserRound,
   GraduationCap,
   X,
-  Building
+  Building,
+  BookOpenCheck
 } from 'lucide-react';
 import { get } from '../../api/service';
 import { useNavigate } from 'react-router-dom';
@@ -155,9 +156,9 @@ export default function Dashboard() {
                 clickable={!isFacultyAdmin}
               />
               <DashboardCard
-                title="İxtisaslar"
-                count={data.speciality_count}
-                icon={GraduationCap}
+                title="Dərslər"
+                count={data.lesson_count}
+                icon={BookOpenCheck}
                 clickable={!isFacultyAdmin}
               />
             </>

@@ -57,6 +57,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
     room_name: propRoomName,
     room,
     lock_id,
+    parent_group
   } = lesson;
 
   const getClassName = (map: { [key: number]: string }, id: number, defaultClass: string) =>
@@ -70,28 +71,43 @@ const LessonCard: React.FC<LessonCardProps> = ({
     onOpenContextMenu(e, groupId, dayId, hourId, lessonIndex, week_type_id);
   };
 
-  const teacherFullName = `${propTeacherName || teacher?.name || ''} ${
-    propTeacherSurname || teacher?.surname || ''
-  }`.trim();
-  const roomLocation = `${propCorpId || room?.corp_name || ''}-${
-    propRoomName || room?.room_name || ''
-  }`.trim();
+  const teacherFullName = `${propTeacherName || teacher?.name || ''} ${propTeacherSurname || teacher?.surname || ''
+    }`.trim();
+  const roomLocation = `${propCorpId || room?.corp_name || ''}-${propRoomName || room?.room_name || ''
+    }`.trim();
 
   const isLocked = lock_id === 1;
 
+  const handleEditClick = () => {
+    if (lesson.parent_group) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Redaktə mümkün deyil',
+        text: 'Bu dərs birləşdirilmiş qrupdandır və redaktə edilə bilməz.',
+        confirmButtonColor: '#2563eb',
+      });
+      return;
+    }
+    onEdit();
+  };
+
   return (
     <div
-      className={`lesson-card ${
-        isMultiple ? 'border-r-2 last:border-r-0 border-dashed border-gray-200' : ''
-      } ${lessonTypeClass} p-2 rounded-lg text-xs cursor-pointer transition-colors duration-200 flex-1 relative flex items-center border`}
-      onClick={onEdit}
+      className={`lesson-card ${isMultiple ? 'border-r-2 last:border-r-0 border-dashed border-gray-200' : ''
+        } ${lessonTypeClass} p-2 rounded-lg text-xs cursor-pointer transition-colors duration-200 flex-1 relative flex items-center border`}
+      onClick={handleEditClick}
       onContextMenu={handleContextMenu}
     >
       <div className="flex-1 min-w-0">
-        <div className="lesson-title font-semibold mb-2 truncate text-gray-800 text-sm">
+        <div className="lesson-title font-semibold truncate text-gray-800 text-sm">
           {lesson_name?.slice(0, 15) ?? ''}
         </div>
 
+        <div className="lesson-type flex items-cente my-1 gap-1 text-gray-600">
+          <span className="text-[10px]">
+            {parent_group && ` (${parent_group})`}
+          </span>
+        </div>
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center">
             <div className="lesson-type flex items-center gap-1 text-gray-600">

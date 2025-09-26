@@ -550,11 +550,15 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
         lesson_id: Number(formData.lesson_id),
         lesson_type_id: Number(formData.lesson_type_id),
         teacher_code: formData.teacher_code,
-        ...(isFacultyAdmin ? {} : { room_id: Number(formData.room_id) }),
         ...(shareWithOthers && sharedGroups.length > 0
           ? { other_groups: sharedGroups }
           : {}),
       };
+
+      // Əgər otaq seçilibsə və boş deyil, əlavə et
+      if (formData.room_id && formData.room_id !== '') {
+        postData.room_id = Number(formData.room_id);
+      }
 
       const response = await post('/api/schedules', postData);
 
@@ -861,61 +865,60 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
 
               </div>
 
-              {!isFacultyAdmin && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Otaq
-                  </label>
-                  <VirtualSelect
-                    value={formData.room_id}
-                    onChange={handleFieldChange}
-                    name="room_id"
-                    options={rooms.map((room) => {
-                      // Əgər 'conflict_info' massivi boş deyilsə
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Otaq
+                </label>
+                <VirtualSelect
+                  value={formData.room_id}
+                  onChange={handleFieldChange}
+                  name="room_id"
+                  options={[
+                    { id: '', name: 'Secin' }, // "Secin" seçimi əlavə olundu
+                    ...rooms.map((room) => {
                       if (room.conflict_info && room.conflict_info.length > 0) {
-                        // 'conflict_info' massivini dolaşaraq hər bir qrup adını götürürük
                         const conflictGroups = room.conflict_info.map(conflict => conflict.group).join(', ');
-
-                        // Yeni bir string yaradırıq, burada otaq adından sonra doluluq barədə məlumat verilir.
-                        const name = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} - Doludur (${conflictGroups})`;
-
+                        const prefix = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} -`;
                         return {
                           id: room.id,
-                          name: name,
+                          name: `${prefix} Doludur (${conflictGroups})`,
+                          displayPrefix: prefix,
+                          statusText: `Doludur (${conflictGroups})`,
+                          isFull: true,
                         };
                       }
-
-                      // Əgər 'conflict_info' boşdursa, otağın boş olduğunu bildiririk.
-                      const name = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} - Boşdur`;
-
+                      const prefix = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} -`;
                       return {
                         id: room.id,
-                        name: name,
+                        name: `${prefix} Boşdur`,
+                        displayPrefix: prefix,
+                        statusText: 'Boşdur',
+                        isFull: false,
                       };
-                    })}
-                    required
-                    error={!!errors.room_id}
-                    placeholder={
-                      (formData.week_type_id && formData.day_id && formData.hour_id)
-                        ? (loadingStates.rooms ? "Otaqlar yüklənir..." : "Otaq seçin")
-                        : "Əvvəl Həftə tipi, Gün və Saat seçin"
+                    })
+                  ]}
+                  required={false}
+                  error={!!errors.room_id}
+                  placeholder={
+                    (formData.week_type_id && formData.day_id && formData.hour_id)
+                      ? (loadingStates.rooms ? "Otaqlar yüklənir..." : "Otaq seçin")
+                      : "Əvvəl Həftə tipi, Gün və Saat seçin"
+                  }
+                  disabled={!formData.week_type_id || !formData.day_id || !formData.hour_id}
+                  searchPlaceholder="Otaq axtarın..."
+                  dropdownDirection="top"
+                  onOpen={() => {
+                    if (!loadedData.rooms) {
+                      loadRooms();
                     }
-                    disabled={!formData.week_type_id || !formData.day_id || !formData.hour_id}
-                    searchPlaceholder="Otaq axtarın..."
-                    dropdownDirection="top"
-                    onOpen={() => {
-                      if (!loadedData.rooms) {
-                        loadRooms();
-                      }
-                    }}
-                    isLoading={loadingStates.rooms}
-                  />
-
-                  {errors.room_id && (
-                    <p className="mt-1 text-sm text-red-600">{errors.room_id}</p>
-                  )}
-                </div>
-              )}
+                  }}
+                  isLoading={loadingStates.rooms}
+                />
+                {errors.room_id && (
+                  <p className="mt-1 text-sm text-red-600">{errors.room_id}</p>
+                )}
+              </div>
             </div>
           </div>
 

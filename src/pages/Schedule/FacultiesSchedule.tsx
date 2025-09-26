@@ -8,6 +8,7 @@ import useSweetAlert from '../../hooks/useSweetAlert';
 import Breadcrumb from '../../components/Breadcrumbs/Breadcrumb';
 import { FaPlus } from 'react-icons/fa6';
 import { useSearchParams } from 'react-router-dom';
+import usePermissions from '../../hooks/usePermissions';
 
 const FacultyList: React.FC = () => {
   const [faculties, setFaculties] = useState<any[]>([]); // Use any[] for now to match API
@@ -20,6 +21,8 @@ const FacultyList: React.FC = () => {
   const { errorAlert } = useSweetAlert();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const canViewFacultySchedule = usePermissions('view_faculty');
 
   // On mount, set currentPage from URL if present
   useEffect(() => {
@@ -125,7 +128,8 @@ const FacultyList: React.FC = () => {
               <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">#</th>
               <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">Fakültə adı</th>
               <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">Kod</th>
-              <th className="py-4 px-6 border-b text-center font-semibold text-gray-700">Bax</th>
+              {canViewFacultySchedule && <th className="py-4 px-6 border-b text-center font-semibold text-gray-700">Bax</th>}
+
             </tr>
           </thead>
           <tbody>
@@ -155,7 +159,8 @@ const FacultyList: React.FC = () => {
                   </td>
                   <td className="py-3 px-6 border-b">{faculty.name}</td>
                   <td className="py-3 px-6 border-b">{faculty.faculty_code}</td>
-                  <td className="py-3 px-6 border-b text-center">
+                  {canViewFacultySchedule && (
+                     <td className="py-3 px-6 border-b text-center">
                     <button
                       className="bg-yellow-100 hover:bg-yellow-200 text-yellow-600 p-1.5 rounded transition-colors"
                       onClick={() => navigate(`/faculties/${faculty.id}`)}
@@ -164,6 +169,7 @@ const FacultyList: React.FC = () => {
                       <PiEyeLight className="w-5 h-5" />
                     </button>
                   </td>
+                  )}
                 </tr>
               ))
             )}
