@@ -329,43 +329,48 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
   };
 
 const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  e.preventDefault();
 
-  if (!validateForm()) {
-    return;
-  }
+  if (!validateForm()) {
+    return;
+  }
 
-  setIsSubmitting(true);
+  setIsSubmitting(true);
 
-  try {
-    const groupIds = Array.isArray(formData.group_id) ? formData.group_id : [formData.group_id];
+  try {
+    const groupIds = Array.isArray(formData.group_id) ? formData.group_id : [formData.group_id];
 
-    const postData: any = {
-      faculty_id: facultyId,
-      group_id: groupIds[0],
-      day_id: Number(formData.day_id),
-      hour_id: Number(formData.hour_id),
-      week_type_id: Number(formData.week_type_id),
-      lesson_id: Number(formData.lesson_id),
-      lesson_type_id: Number(formData.lesson_type_id),
-      teacher_code: formData.teacher_code,
-      schedule_group_id: modalData.schedule_group_id,
-    };
+    const postData: any = {
+      faculty_id: facultyId,
+      group_id: groupIds[0],
+      day_id: Number(formData.day_id),
+      hour_id: Number(formData.hour_id),
+      week_type_id: Number(formData.week_type_id),
+      lesson_id: Number(formData.lesson_id),
+      lesson_type_id: Number(formData.lesson_type_id),
+      teacher_code: formData.teacher_code,
+      schedule_group_id: modalData.schedule_group_id,
+    };
 
-    // Əgər otaq seçilibsə, əlavə et
-    if (formData.room_id) {
-      postData.room_id = Number(formData.room_id);
-    }
+    // Əgər otaq seçilibsə, əlavə et
+    if (formData.room_id) {
+      postData.room_id = Number(formData.room_id);
+    }
 
-    await put(`/api/schedules/${scheduGroupleId}`, postData);
-    successAlert('Uğurlu', 'Dərs uğurla yeniləndi!');
-    onClose();
-    if (onSuccess) onSuccess();
-  } catch (error: any) {
-    // ...existing error handling...
-  } finally {
-    setIsSubmitting(false);
-  }
+    await put(`/api/schedules/${scheduGroupleId}`, postData);
+    successAlert('Uğurlu', 'Dərs uğurla yeniləndi!');
+    onClose();
+    if (onSuccess) onSuccess();
+  } catch (error: any) {
+    // Əlavə et: 409 və ya digər error mesajını göstər
+    let message = 'Xəta baş verdi! Zəhmət olmasa yenidən cəhd edin.';
+    if (error?.response?.data?.message) {
+      message = error.response.data.message;
+    }
+    errorAlert('Xəta', message);
+  } finally {
+    setIsSubmitting(false);
+  }
 };
   if (!isOpen) return null;
 
@@ -556,25 +561,31 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Müəllim
                 </label>
-                <VirtualSelect
-                  value={formData.teacher_code}
-                  onChange={handleFieldChange}
-                  name="teacher_code"
-                  disabled
-                  options={professors.map((professor) => ({
-                    id: professor.professor_id,
-                    name: `${professor.professor_name || ''} ${professor.professor_surname || ''}`.trim(),
-                  }))}
-                  required
-                  error={!!errors.teacher_code}
-                  placeholder="Müəllim seçin"
-                  onOpen={() => {
-                    if (formData.lesson_id && formData.lesson_type_id) {
-                      loadProfessorsByLessonType(formData.lesson_id, formData.lesson_type_id);
-                    }
-                  }}
-                  isLoading={loadingStates.professors}
-                />
+        <VirtualSelect
+  value={formData.teacher_code}
+  onChange={handleFieldChange}
+  name="teacher_code"
+  disabled
+  options={professors.map((professor) => ({
+    id: professor.professor_id,
+    name: `${professor.professor_name || ''} ${professor.professor_surname || ''}`.trim(),
+  }))}
+  required
+  error={!!errors.teacher_code}
+  placeholder={
+    formData.lesson_id && formData.lesson_type_id
+      ? professors.length === 0
+        ? "Müəllim tapılmadı"
+        : "Müəllim seçin"
+      : "Əvvəl fənn və dərs tipi seçin"
+  }
+  onOpen={() => {
+    if (formData.lesson_id && formData.lesson_type_id) {
+      loadProfessorsByLessonType(formData.lesson_id, formData.lesson_type_id);
+    }
+  }}
+  isLoading={loadingStates.professors}
+/>
 
               </div>
 <div>

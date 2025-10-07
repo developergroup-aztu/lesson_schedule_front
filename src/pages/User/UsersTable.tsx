@@ -432,6 +432,8 @@ const UserTable: React.FC = () => {
         ))}
       </div>
 
+      
+
       {/* Empty State */}
       {users.length === 0 && (
         <div className="bg-white rounded-2xl shadow border border-gray-100 p-8 text-center">

@@ -397,7 +397,6 @@ function Schedule() {
           onSuccess={() => Promise.resolve(refreshSchedule()).then(restoreScrollPositions)}
         />
       )
-        // 2. Əks halda, əgər rejim 'add' deyilsə (yəni 'edit' və ya başqa bir şeydirsə) VƏ istifadəçinin dəyişdirmə icazəsi varsa:
         : modalData.mode !== 'add' && canEditSchedule ? (
           <EditLessonModal
             isOpen={modalData.isOpen}
@@ -407,7 +406,6 @@ function Schedule() {
             onSuccess={() => Promise.resolve(refreshSchedule()).then(restoreScrollPositions)}
           />
         )
-          // 3. Əks halda (əgər icazə yoxdursa və ya modalData.isOpen = false) heç nə göstərmə.
           : null}
 
       <ContextMenu

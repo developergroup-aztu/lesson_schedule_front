@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://cedvel.aztu.edu.az';
+const API_BASE_URL = 'http://10.2.23.63/public';
+// const API_BASE_URL = 'https://cedvel.aztu.edu.az';
 
 
 

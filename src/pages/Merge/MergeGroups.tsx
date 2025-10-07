@@ -91,6 +91,7 @@ const MergeGroups = () => {
     useEffect(() => {
         let isMounted = true;
         const fetchMerges = async () => {
+            // Keep current rows while loading to avoid layout jump
             setLoading(true);
             setError(null);
 
@@ -223,8 +224,19 @@ const MergeGroups = () => {
         }
     };
 
+    useEffect(() => {
+    // Əgər axtarış sözü dəyişibsə VƏ hazırkı səhifə 1 deyilsə, səhifəni 1-ə sıfırla.
+    // Bu, axtarış nəticələrinin hər zaman ilk səhifədən başlamasını təmin edir.
+    if (currentPage !== 1) {
+        // setCurrentPage(1) çağırılması əsas fetchMerges useEffect-i işə salacaq
+        setCurrentPage(1);
+    }
+    // Qeyd: Əgər currentPage artıq 1-dirsə, setCurrentPage(1) çağırılmır, lakin 
+    // əsas fetchMerges useEffect-i debouncedSearchTerm-un dəyişməsi sayəsində yenə də işə düşür.
+}, [debouncedSearchTerm]);
+
     return (
-        <div className="space-y-6">
+        <div className="">
             {/* Header and Add Button */}
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-slate-800">Birləşmiş Qruplar</h2>
@@ -258,7 +270,7 @@ const MergeGroups = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-lg shadow border border-gray-100 overflow-x-auto relative">
+            <div className="bg-white rounded-lg shadow border border-gray-100 overflow-x-auto relative min-h-[360px] mt-6">
                 <table className="min-w-full bg-white">
                     <thead>
                         <tr className="bg-indigo-50">
@@ -278,14 +290,8 @@ const MergeGroups = () => {
                             <th className="py-4 px-6 border-b text-left font-semibold text-gray-700">Əməliyyatlar</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr>
-                                <td colSpan={5} className="text-center py-16">
-                                    <ClipLoader size={30} color="#3949AB" />
-                                </td>
-                            </tr>
-                        ) : error ? (
+                    <tbody className={`${loading ? 'opacity-60' : ''}`}>
+                        {error ? (
                             <tr>
                                 <td colSpan={5} className="text-center py-8 text-red-500">{error}</td>
                             </tr>
@@ -340,6 +346,11 @@ const MergeGroups = () => {
                         )}
                     </tbody>
                 </table>
+                {loading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/40 pointer-events-none">
+                        <ClipLoader size={30} color="#3949AB" />
+                    </div>
+                )}
             </div>
             {/* Pagination Controls */}
             {lastPage > 1 && (

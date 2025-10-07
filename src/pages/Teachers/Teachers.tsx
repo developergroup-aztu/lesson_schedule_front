@@ -126,6 +126,20 @@ const Teachers: React.FC = () => {
     };
   }, [currentPage, sortCol, sortDir, debouncedSearchTerm]); // Dependencies for re-fetching data
 
+  // Axtarış başladığında səhifəni 1-ə sıfırla
+useEffect(() => {
+  // Axtarış sözü boş deyilsə VƏ hazırkı səhifə 1 deyilsə (və ya axtarış sözü dəyişibsə), 1-ə sıfırla
+  // Bu, axtarış nəticəsinin hər zaman 1-ci səhifədən göstərilməsini təmin edir.
+  if (debouncedSearchTerm) {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  } else if (!debouncedSearchTerm && currentPage !== 1 && searchParams.get('search')) {
+      // Əgər axtarış boşalıbsa, amma URL-də hələ də axtarış parametri varsa və biz 1-ci səhifədə deyiliksə, 1-ə sıfırlayırıq.
+      setCurrentPage(1);
+  }
+}, [debouncedSearchTerm]); // Yalnız axtarış sözü dəyişdikdə işə düşür
+
   // Handle header click for sorting
   const handleSort = (column: string) => {
     if (sortCol === column) {

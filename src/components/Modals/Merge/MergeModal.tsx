@@ -7,9 +7,7 @@ import useSweetAlert from '../../../hooks/useSweetAlert';
 interface MergeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void; // əlavə et
-  
-
+  onSuccess?: () => void;
 }
 
 const MergeModal: React.FC<MergeModalProps> = ({ isOpen, onClose, onSuccess }) => {
@@ -18,8 +16,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ isOpen, onClose, onSuccess }) =
   const [lessonTypeOptions, setLessonTypeOptions] = useState<any[]>([]);
   const [otherGroupOptions, setOtherGroupOptions] = useState<any[]>([]);
 
-  const { successAlert, errorAlert } = useSweetAlert(); // əlavə et
-
+  const { successAlert, errorAlert } = useSweetAlert();
 
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
   const [selectedLecture, setSelectedLecture] = useState<any>(null);
@@ -33,31 +30,29 @@ const MergeModal: React.FC<MergeModalProps> = ({ isOpen, onClose, onSuccess }) =
 
   const { user } = useAuth();
 
+  // Qrupları yüklə (yalnız kliklənəndə çağırılacaq)
+  const fetchGroups = async () => {
+    setLoadingGroups(true);
+    try {
+      const grupApi =
+        user?.roles.includes('admin') || user?.roles.includes('SuperAdmin')
+          ? '/api/groups-all'
+          : `/api/groups?faculty_id=${user?.faculty_id}`;
+      const res = await get(`${grupApi}`);
+      const groupsData = Array.isArray(res.data) ? res.data : res.data?.data || [];
 
-  // Qrupları yüklə
-const fetchGroups = async () => {
-    setLoadingGroups(true);
-    try {
-      const grupApi = user?.roles.includes('admin') || user?.roles.includes('SuperAdmin') ? '/api/groups-all' : `/api/groups?faculty_id=${user?.faculty_id}`;
-      const res = await get(`${grupApi}`);
-      const groupsData = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      
-      const formattedGroups = groupsData.map(group => {
-          const facultyName = group.faculty?.name;
-          
-          const nameWithFaculty = facultyName ? `${group.name} (${facultyName})` : group.name;
+      const formattedGroups = groupsData.map((group) => {
+        const facultyName = group.faculty?.name;
+        const nameWithFaculty = facultyName ? `${group.name} (${facultyName})` : group.name;
+        return { ...group, name: nameWithFaculty };
+      });
 
-          return {
-              ...group,
-              name: nameWithFaculty,
-          };
-      });
+      setGroupOptions(formattedGroups);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
 
-      setGroupOptions(formattedGroups);
-    } finally {
-      setLoadingGroups(false);
-    }
-  };
   // Qrupa görə dərsləri yüklə
   const fetchLecturesByGroup = async (groupId: any) => {
     setLoadingLectures(true);
@@ -91,7 +86,7 @@ const fetchGroups = async () => {
     }
   };
 
-  // Modal açıldıqda hər şeyi sıfırla və qrupları yüklə
+  // Modal açıldıqda hər şeyi sıfırla (amma qrupları avtomatik yükləmə)
   useEffect(() => {
     if (isOpen) {
       setSelectedGroup(null);
@@ -101,7 +96,7 @@ const fetchGroups = async () => {
       setLectureOptions([]);
       setLessonTypeOptions([]);
       setOtherGroupOptions([]);
-      fetchGroups();
+      setGroupOptions([]); // köhnə datanı təmizlə
     }
   }, [isOpen]);
 
@@ -162,7 +157,9 @@ const fetchGroups = async () => {
       !selectedLessonType ||
       !selectedOtherGroup ||
       selectedOtherGroup.length === 0
-    ) return;
+    )
+      return;
+
     setSubmitting(true);
     try {
       const selectedLectureObj = lectureOptions.find(
@@ -170,7 +167,6 @@ const fetchGroups = async () => {
       );
       const lecture_id = selectedLectureObj?.lecture_id;
 
-      // Digər qrupların group_id-lərini arraya yığ
       const otherGroupIds = selectedOtherGroup
         .map((selectedId: any) => {
           const obj = otherGroupOptions.find((item) => item.id === selectedId);
@@ -180,7 +176,7 @@ const fetchGroups = async () => {
 
       const group_ids = [selectedGroup, ...otherGroupIds];
 
-      const response = await post('/api/merges', {
+      await post('/api/merges', {
         lecture_id,
         lesson_type_id: selectedLessonType,
         group_ids,
@@ -200,39 +196,48 @@ const fetchGroups = async () => {
       setSubmitting(false);
     }
   };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-9999">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
         <button
           className="absolute top-3 right-3 text-gray-400 hover:text-red-500"
           onClick={onClose}
         >
-          <span className="sr-only">Bağla</span>
-          ×
+          <span className="sr-only">Bağla</span>×
         </button>
-        <h2 className="text-lg font-semibold mb-6 text-slate-800">Birləşmə əlavə et</h2>
+
+        <h2 className="text-lg font-semibold mb-6 text-slate-800 m-0">Birləşmə əlavə et</h2>
+
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Qrup seçimi */}
           <div>
             <label className="block mb-1 text-sm font-medium text-slate-700">Qrup seçin</label>
-            <VirtualSelect
-              name="group"
-              value={selectedGroup}
-              onChange={val => setSelectedGroup(val)}
-              options={groupOptions}
-              labelKey="name"
-              placeholder="Qrup seçin"
-              isLoading={loadingGroups}
-              required
-            />
+          <VirtualSelect
+  name="group"
+  value={selectedGroup}
+  onChange={(val) => setSelectedGroup(val)}
+  options={groupOptions}
+  labelKey="name"
+  placeholder="Qrup seçin"
+  isLoading={loadingGroups}
+  required
+  onOpen={() => {
+    if (groupOptions.length === 0 && !loadingGroups) fetchGroups();
+  }}
+/>
+
           </div>
+
+          {/* Dərs seçimi */}
           <div>
             <label className="block mb-1 text-sm font-medium text-slate-700">Dərs seçin</label>
             <VirtualSelect
               name="lecture"
               value={selectedLecture}
-              onChange={val => setSelectedLecture(val)}
+              onChange={(val) => setSelectedLecture(val)}
               options={lectureOptions}
               labelKey="name"
               placeholder="Dərs seçin"
@@ -241,12 +246,14 @@ const fetchGroups = async () => {
               disabled={!selectedGroup}
             />
           </div>
+
+          {/* Dərs tipi seçimi */}
           <div>
             <label className="block mb-1 text-sm font-medium text-slate-700">Dərs tipi</label>
             <VirtualSelect
               name="lesson_type"
               value={selectedLessonType}
-              onChange={val => setSelectedLessonType(val)}
+              onChange={(val) => setSelectedLessonType(val)}
               options={lessonTypeOptions}
               labelKey="lesson_type"
               placeholder="Dərs tipi seçin"
@@ -255,24 +262,28 @@ const fetchGroups = async () => {
               disabled={!selectedLecture}
             />
           </div>
+
+          {/* Digər qrup seçimi */}
           <div>
             <label className="block mb-1 text-sm font-medium text-slate-700">Digər qrup</label>
             <VirtualSelect
               name="other_group"
               value={selectedOtherGroup}
-              onChange={val => setSelectedOtherGroup(val)}
+              onChange={(val) => setSelectedOtherGroup(val)}
               options={otherGroupOptions}
               labelKey="group_name"
               placeholder="Digər qrup seçin"
               isLoading={loadingOtherGroups}
               required
               disabled={!selectedLessonType}
-              multiple // <-- düz budur!
+              multiple
             />
           </div>
+
+          {/* Submit düyməsi */}
           <button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg  transition"
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg transition"
             disabled={
               submitting ||
               !selectedGroup ||
