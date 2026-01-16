@@ -37,14 +37,19 @@ const fetchSchedule = useCallback(async () => {
   let facultyId: number | undefined;
   setLoading(true); 
 
-  if (user?.roles?.includes("admin") || user?.roles?.includes("SuperAdmin")) {
-    facultyId = params.id ? Number(params.id) : undefined;
-  }
-  else if ((user as any)?.faculty_id) {
+  const canViewAnyFaculty =
+    user?.roles?.includes("admin") ||
+    user?.roles?.includes("SuperAdmin") ||
+    user?.permissions?.includes("view_faculty");
+
+  if (canViewAnyFaculty && params.id) {
+    facultyId = Number(params.id);
+  } else if ((user as any)?.faculty_id) {
     facultyId = Number((user as any).faculty_id);
   }
 
   if (!facultyId) {
+    setHasError(true);
     setLoading(false);
     return;
   }

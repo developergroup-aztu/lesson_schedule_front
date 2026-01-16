@@ -26,9 +26,11 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const params = useParams();
 
-  const facultyId = user.faculty_id || scheduleData.faculty?.faculty_id || params.id;
+  const facultyId =
+    user?.faculty_id ??
+    scheduleData.faculty?.faculty_id ??
+    params.id;
   const facultyName = user?.faculty_name || scheduleData.faculty?.faculty_name;
-  const isFacultyAdmin = user?.roles.includes('FacultyAdmin');
 
   // State-lər
   const [groups, setGroups] = useState<any[]>([]);
@@ -175,15 +177,17 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
           const promises = [];
 
           // Load groups
-          if (!loadedData.groups) {
-            promises.push(
-              get(`/api/groups?faculty_id=${facultyId}`)
-                .then(res => {
-                  setGroups(res.data || []);
-                  setLoadedData(prev => ({ ...prev, groups: true }));
-                })
-            );
-          }
+         // ...existing code...
+if (!loadedData.groups) {
+  promises.push(
+    get(`/api/groups?faculty_id=${facultyId}`)
+      .then(res => {
+        setGroups(Array.isArray(res.data?.data) ? res.data.data : []);
+        setLoadedData(prev => ({ ...prev, groups: true }));
+      })
+  );
+}
+// ...existing code...
 
           // Load hours
           if (!loadedData.hours) {
@@ -244,20 +248,22 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
   }, [facultyId, isOpen, modalData]);
 
   // Loading functions
-  const loadGroups = async () => {
-    if (loadedData.groups || loadingStates.groups) return;
+const loadGroups = async () => {
+  if (loadedData.groups || loadingStates.groups) return;
 
-    setLoadingStates(prev => ({ ...prev, groups: true }));
-    try {
-      const response = await get(`/api/groups?faculty_id=${facultyId}`);
-      setGroups(response.data || []);
-      setLoadedData(prev => ({ ...prev, groups: true }));
-    } catch (error) {
-      console.error('Groups loading failed:', error);
-    } finally {
-      setLoadingStates(prev => ({ ...prev, groups: false }));
-    }
-  };
+  setLoadingStates(prev => ({ ...prev, groups: true }));
+  try {
+    const response = await get(`/api/groups?faculty_id=${facultyId}`);
+    // Düzgün arrayı götür:
+    setGroups(Array.isArray(response.data?.data) ? response.data.data : []);
+    setLoadedData(prev => ({ ...prev, groups: true }));
+  } catch (error) {
+    console.error('Groups loading failed:', error);
+    setGroups([]);
+  } finally {
+    setLoadingStates(prev => ({ ...prev, groups: false }));
+  }
+};
 
   const loadHours = async () => {
     if (loadedData.hours || loadingStates.hours) return;
@@ -361,12 +367,12 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
       return;
     }
 
-    setLoadingStates(prev => ({ ...prev, lessonTypeProfessors: true }));
+    setLoadingStates((prev) => ({ ...prev, lessonTypeProfessors: true }));
 
     try {
       const response = await get(`/api/lessons/${lessonId}/professor/type/${lessonTypeId}`);
 
-      let professorsData = [];
+      let professorsData: any[] = [];
       if (response.data && Array.isArray(response.data)) {
         professorsData = response.data;
       } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
@@ -377,10 +383,10 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
 
       setProfessors(professorsData);
       setCurrentProfessorsLessonTypeId(cacheKey);
-      setLoadedData(prev => ({ ...prev, lessonTypeProfessors: true }));
+      setLoadedData((prev) => ({ ...prev, lessonTypeProfessors: true }));
 
       if (professorsData.length > 0) {
-        setFormData(prev => ({
+        setFormData((prev: any) => ({
           ...prev,
           teacher_code: professorsData[0].professor_id
         }));
@@ -390,7 +396,7 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
       setProfessors([]);
       setCurrentProfessorsLessonTypeId(null);
     } finally {
-      setLoadingStates(prev => ({ ...prev, lessonTypeProfessors: false }));
+      setLoadingStates((prev) => ({ ...prev, lessonTypeProfessors: false }));
     }
   };
 
@@ -458,7 +464,7 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
           newFormData.lesson_id = '';
           setSubjects([]);
           setCurrentSubjectsGroupId(null);
-          setLoadedData(prev => ({ ...prev, subjects: false }));
+          setLoadedData((prev: any) => ({ ...prev, subjects: false }));
           loadSubjects(groupId);
         }
       }
@@ -467,7 +473,7 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
         // Otaq seçimini sıfırla, çünki yeni vaxt üçün fərqli otaqlar gələcək.
         newFormData.room_id = '';
         // Əgər əvvəlki "rooms" datası yüklənmişdisə, yenidən yüklənmək üçün statusu "false" et.
-        setLoadedData(prevLoaded => ({ ...prevLoaded, rooms: false }));
+        setLoadedData((prevLoaded: any) => ({ ...prevLoaded, rooms: false }));
       }
 
       if (name === 'lesson_type_id' && value) {
@@ -475,7 +481,7 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
           newFormData.teacher_code = '';
           setProfessors([]);
           setCurrentProfessorsLessonTypeId(null);
-          setLoadedData(prev => ({ ...prev, lessonTypeProfessors: false }));
+          setLoadedData((prev: any) => ({ ...prev, lessonTypeProfessors: false }));
           loadProfessorsByLessonType(newFormData.lesson_id, value);
         }
       }
@@ -485,7 +491,7 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
           newFormData.teacher_code = '';
           setProfessors([]);
           setCurrentProfessorsLessonTypeId(null);
-          setLoadedData(prev => ({ ...prev, lessonTypeProfessors: false }));
+          setLoadedData((prev: any) => ({ ...prev, lessonTypeProfessors: false }));
           loadProfessorsByLessonType(value, newFormData.lesson_type_id);
         }
       }
@@ -524,7 +530,7 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
       newErrors.week_type_id = 'Həftə tipi seçilməlidir';
     }
 
-    setErrors(newErrors);
+      setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -560,17 +566,12 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
         postData.room_id = Number(formData.room_id);
       }
 
-      const response = await post('/api/schedules', postData);
+      await post('/api/schedules', postData);
 
       successAlert('Uğurlu', 'Dərs uğurla əlavə olundu!');
 
       if (onSuccess) {
-        onSuccess(
-          groupId,
-          Number(formData.day_id),
-          Number(formData.hour_id),
-          response.data
-        );
+        onSuccess();
       }
     } catch (error: any) {
       let message = 'Xəta baş verdi! Zəhmət olmasa yenidən cəhd edin.';
@@ -630,20 +631,20 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Qrup <span className="text-red-500">*</span>
                 </label>
-                <VirtualSelect
-                  value={formData.group_id && formData.group_id.length > 0 ? formData.group_id[0] : ''}
-                  onChange={(value) => handleFieldChange([value], { name: 'group_id' })}
-                  name="group_id"
-                  options={groups.map((group) => ({
-                    id: group.id || group.group_id,
-                    name: group.name || group.group_name,
-                  }))}
-                  required
-                  error={!!errors.group_id}
-                  placeholder="Qrup seçin"
-                  onOpen={!loadedData.groups ? loadGroups : undefined}
-                  isLoading={loadingStates.groups}
-                />
+               <VirtualSelect
+  value={formData.group_id && formData.group_id.length > 0 ? formData.group_id[0] : ''}
+  onChange={(value) => handleFieldChange([value], { name: 'group_id' })}
+  name="group_id"
+  options={groups.map((group) => ({
+    id: group.id,
+    name: group.name,
+  }))}
+  required
+  error={!!errors.group_id}
+  placeholder="Qrup seçin"
+  onOpen={!loadedData.groups ? loadGroups : undefined}
+  isLoading={loadingStates.groups}
+/>
                 {errors.group_id && (
                   <p className="mt-1 text-sm text-red-600">{errors.group_id}</p>
                 )}
@@ -878,7 +879,7 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
                     { id: '', name: 'Secin' }, // "Secin" seçimi əlavə olundu
                     ...rooms.map((room) => {
                       if (room.conflict_info && room.conflict_info.length > 0) {
-                        const conflictGroups = room.conflict_info.map(conflict => conflict.group).join(', ');
+                        const conflictGroups = room.conflict_info.map((conflict: any) => conflict.group).join(', ');
                         const prefix = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} -`;
                         return {
                           id: room.id,

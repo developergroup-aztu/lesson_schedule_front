@@ -22,7 +22,7 @@ const SignIn: React.FC = () => {
 
     try {
       const response = await post('/api/login', { email, password });
-      if (response.data.token) {
+      if (response.data.token) {0
         login(response.data.token);
         navigate('/dashboard');
       } else {

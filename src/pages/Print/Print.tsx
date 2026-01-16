@@ -7,6 +7,29 @@ import Swal from 'sweetalert2';
 import Breadcrumb from '../../components/Breadcrumbs/Breadcrumb';
 import usePermissions from '../../hooks/usePermissions';
 
+const formatSemesterName = (code: string): string => {
+  if (!code || code.length < 5) return code;
+  const year = code.slice(0, 4);
+  const seasonCode = code.slice(4);
+
+  let season = '';
+  switch (seasonCode) {
+    case '1':
+      season = 'Yaz semestri';
+      break;
+    case '2':
+      season = 'Payız semestri';
+      break;
+    case '5':
+      season = 'Yay semestri';
+      break;
+    default:
+      return code;
+  }
+
+  return `${year} ${season}`;
+};
+
 const Print = () => {
   const { user } = useAuth();
   const { successAlert, errorAlert, showConfirmAlert } = useSweetAlert();
@@ -30,6 +53,7 @@ const Print = () => {
   const [faculties, setFaculties] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
+  const [semesters, setSemesters] = useState<any[]>([]);
 
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
   const [selectedGroupHourIds, setSelectedGroupHourIds] = useState<number[]>([]);
@@ -38,10 +62,17 @@ const Print = () => {
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<number[]>([]);
   const [selectedTeacherHourIds, setSelectedTeacherHourIds] = useState<number[]>([]);
 
+  const [selectedGroupSemesterId, setSelectedGroupSemesterId] = useState<number | null>(null);
+  const [selectedRoomSemesterId, setSelectedRoomSemesterId] = useState<number | null>(null);
+  const [selectedTeacherSemesterId, setSelectedTeacherSemesterId] = useState<number | null>(null);
+
   const canViewRoomPrint = usePermissions('room_print');
   const canViewTeacherPrint = usePermissions('teacher_print');
   const canViewGroupPrint = usePermissions('group_print');
   const canViewFaculties = usePermissions('view_faculties');
+
+  const [hasOpenedSemesters, setHasOpenedSemesters] = useState(false);
+  const [isLoadingSemesters, setIsLoadingSemesters] = useState(false);
 
   const endpoint = useMemo(() => {
     if (isSuperAdmin) {
@@ -122,6 +153,25 @@ const Print = () => {
     }
   }, [hasOpenedTeachers]);
 
+  useEffect(() => {
+    if (hasOpenedSemesters) {
+      setIsLoadingSemesters(true);
+      get('/api/semesters')
+        .then((res) => {
+          const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
+          setSemesters(
+            data.map((s: any) => ({
+              id: s.id,
+              name: formatSemesterName(s.year),
+            })),
+          );
+        })
+        .finally(() => {
+          setIsLoadingSemesters(false);
+        });
+    }
+  }, [hasOpenedSemesters]);
+
   // ...existing code...
   const handleDownload = async () => {
     if (selectedGroupIds.length === 0 || selectedGroupHourIds.length === 0) {
@@ -133,7 +183,14 @@ const Print = () => {
     try {
       const fid = isSuperAdmin ? (selectedFaculty ?? facultyId) : facultyId;
       const url = `/api/schedule/faculty/${fid}/print2`;
-      const payload = { group_ids: selectedGroupIds, hour_ids: selectedGroupHourIds };
+      const payload: any = {
+        group_ids: selectedGroupIds,
+        hour_ids: selectedGroupHourIds,
+      };
+
+      if (selectedGroupSemesterId) {
+        payload.semester_id = selectedGroupSemesterId;
+      }
       const res = await postFile(url, payload);
       Swal.close();
       const blob = new Blob([res.data], { type: 'application/pdf' });
@@ -160,7 +217,14 @@ const Print = () => {
     showConfirmAlert('Yüklənir...', 'PDF faylı hazırlanır. Zəhmət olmasa gözləyin.');
     try {
       const url = `/api/schedule/room/print`;
-      const payload = { room_ids: selectedRoomIds, hour_ids: selectedRoomHourIds };
+      const payload: any = {
+        room_ids: selectedRoomIds,
+        hour_ids: selectedRoomHourIds,
+      };
+
+      if (selectedRoomSemesterId) {
+        payload.semester_id = selectedRoomSemesterId;
+      }
       const res = await postFile(url, payload);
       Swal.close();
       const blob = new Blob([res.data], { type: 'application/pdf' });
@@ -185,7 +249,14 @@ const Print = () => {
     showConfirmAlert('Yüklənir...', 'PDF faylı hazırlanır. Zəhmət olmasa gözləyin.');
     try {
       const url = `/api/schedule/teacher/print`;
-      const payload = { teacher_ids: selectedTeacherIds, hour_ids: selectedTeacherHourIds };
+      const payload: any = {
+        teacher_ids: selectedTeacherIds,
+        hour_ids: selectedTeacherHourIds,
+      };
+
+      if (selectedTeacherSemesterId) {
+        payload.semester_id = selectedTeacherSemesterId;
+      }
       const res = await postFile(url, payload);
       Swal.close();
       const blob = new Blob([res.data], { type: 'application/pdf' });
@@ -227,6 +298,18 @@ const Print = () => {
                   />
                 </div>
               )}
+              <div className="mb-4">
+                <label className="block mb-1 text-sm font-medium text-slate-700">Semestr (istəyə bağlı)</label>
+                <VirtualSelect
+                  name="group_semester"
+                  value={selectedGroupSemesterId}
+                  onChange={(val) => setSelectedGroupSemesterId(val as number)}
+                  options={semesters}
+                  placeholder="Semestr seçin (boş buraxıla bilər)"
+                  onOpen={() => setHasOpenedSemesters(true)}
+                  isLoading={isLoadingSemesters}
+                />
+              </div>
               <div className="mb-4">
                 <label className="block mb-1 text-sm font-medium text-slate-700">Saatlar</label>
                 <VirtualSelect
@@ -286,6 +369,18 @@ const Print = () => {
                 />
               </div>
               <div className="mb-4">
+                <label className="block mb-1 text-sm font-medium text-slate-700">Semestr (istəyə bağlı)</label>
+                <VirtualSelect
+                  name="room_semester"
+                  value={selectedRoomSemesterId}
+                  onChange={(val) => setSelectedRoomSemesterId(val as number)}
+                  options={semesters}
+                  placeholder="Semestr seçin (boş buraxıla bilər)"
+                  onOpen={() => setHasOpenedSemesters(true)}
+                  isLoading={isLoadingSemesters}
+                />
+              </div>
+              <div className="mb-4">
                 <label className="block mb-1 text-sm font-medium text-slate-700">Saatlar</label>
                 <VirtualSelect
                   name="room_hours"
@@ -322,6 +417,18 @@ const Print = () => {
                   placeholder="Müəllimləri seçin"
                   onOpen={() => setHasOpenedTeachers(true)}
                   isLoading={isLoadingTeachers}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block mb-1 text-sm font-medium text-slate-700">Semestr (istəyə bağlı)</label>
+                <VirtualSelect
+                  name="teacher_semester"
+                  value={selectedTeacherSemesterId}
+                  onChange={(val) => setSelectedTeacherSemesterId(val as number)}
+                  options={semesters}
+                  placeholder="Semestr seçin (boş buraxıla bilər)"
+                  onOpen={() => setHasOpenedSemesters(true)}
+                  isLoading={isLoadingSemesters}
                 />
               </div>
               <div className="mb-4">

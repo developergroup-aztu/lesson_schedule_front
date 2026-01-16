@@ -29,46 +29,58 @@ const EditUser: React.FC = () => {
   const hasEditPermission = usePermissions('edit_user');
   const { errorAlert, successAlert } = useSweetAlert();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await get(`/api/users/${id}`);
-        const userData = response.data;
-        setName(userData.name || '');
-        setSurname(userData.surname || '');
-        setFacultyId(userData.faculty?.id || null);
-        setEmail(userData.email || '');
-        setRoleId(Array.isArray(userData.roles)
-          ? userData.roles[0]
-          : Object.values(userData.roles)[0] || null);
-      } catch (err: any) {
-        errorAlert('Xəta', err.message || 'İstifadəçi məlumatı yüklənmədi');
-      }
-    };
+useEffect(() => {
+  const fetchUser = async () => {
+    try {
+      const response = await get(`/api/users/${id}`);
+      // Support nested { data: { ... } } və { ... } strukturlarını
+      const userData = response.data?.data ?? response.data ?? {};
+      setName(userData.name || '');
+      setSurname(userData.surname || '');
+      setFacultyId(userData.faculty?.id ?? null);
+      setEmail(userData.email || '');
+      setRoleId(
+        Array.isArray(userData.roles)
+          ? userData.roles[0] ?? null
+          : Object.values(userData.roles ?? {})[0] ?? null
+      );
+    } catch (err: any) {
+      errorAlert('Xəta', err.message || 'İstifadəçi məlumatı yüklənmədi');
+    }
+  };
 
-    const fetchFaculties = async () => {
-      try {
-        const response = await get('/api/faculties');
-        setFaculties(response.data);
-      } catch (err: any) {
-        errorAlert('Xəta', err.message || 'Fakültələr yüklənmədi');
-      }
-    };
+  const fetchFaculties = async () => {
+    try {
+      const response = await get('/api/faculties');
+      // API bəzən { data: [...] } qaytara bilər — hər iki halı dəstəklə
+      const data = response.data?.data ?? response.data ?? [];
+      const normalized: Faculty[] = Array.isArray(data)
+        ? data.map((f: any) => ({ id: Number(f.id), name: String(f.name) }))
+        : [];
+      setFaculties(normalized);
+    } catch (err: any) {
+      errorAlert('Xəta', err.message || 'Fakültələr yüklənmədi');
+    }
+  };
 
-    const fetchRoles = async () => {
-      try {
-        const response = await get('/api/roles');
-        setAllRoles(response.data);
-      } catch (err: any) {
-        errorAlert('Xəta', err.message || 'Rollar yüklənmədi');
-      }
-    };
+  const fetchRoles = async () => {
+    try {
+      const response = await get('/api/roles');
+      const data = response.data?.data ?? response.data ?? [];
+      const normalized: Role[] = Array.isArray(data)
+        ? data.map((r: any) => ({ id: Number(r.id), name: String(r.name) }))
+        : [];
+      setAllRoles(normalized);
+    } catch (err: any) {
+      errorAlert('Xəta', err.message || 'Rollar yüklənmədi');
+    }
+  };
 
-    fetchUser();
-    fetchFaculties();
-    fetchRoles();
-    // eslint-disable-next-line
-  }, [id]);
+  fetchUser();
+  fetchFaculties();
+  fetchRoles();
+  // eslint-disable-next-line
+}, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

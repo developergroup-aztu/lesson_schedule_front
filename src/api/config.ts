@@ -7,7 +7,7 @@ const API_BASE_URL = 'http://10.2.23.63/public';
 
 
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,   
+  baseURL: API_BASE_URL,    
   headers: {
     'Content-Type': 'application/json',
   },
@@ -32,6 +32,12 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      // Login zamanı yanlış credential 401 qaytara bilər — bu halda refresh/yönləndirmə etmə
+      const requestUrl: string | undefined = error?.config?.url;
+      if (requestUrl && requestUrl.includes('/api/login')) {
+        return Promise.reject(error);
+      }
+
       // Tokeni sil və istifadəçini /signin-ə yönləndir
       localStorage.removeItem('token');
       window.location.href = '/signin';

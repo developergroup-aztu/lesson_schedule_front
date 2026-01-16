@@ -30,16 +30,24 @@ export interface Subject {
 
 export interface Lesson {
   schedule_id: number;
+  schedule_group_id?: number;
   subject_id: number;
   subject_name: string;
+  lesson_name?: string;
   lesson_type_id: number;
   lesson_type_name: string;
   teacher: Teacher;
+  teacher_name?: string;
+  teacher_surname?: string;
   room: Room;
+  room_name?: string;
+  corp_id?: number | null;
   week_type_id: number;
   week_type_name: string;
   confirm_status: number;
   blocked: boolean;
+  lock_id?: number;
+  parent_group?: number | null;
 }
 
 export interface HourWithLessons {

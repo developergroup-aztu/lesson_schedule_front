@@ -3,15 +3,29 @@ import { Link } from 'react-router-dom';
 import ClickOutside from '../ClickOutside';
 import { useAuth } from '../../Context/AuthContext';
 import { FaRegCircleUser } from 'react-icons/fa6';
+import { post } from '../../api/service';
 
 const DropdownUser = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { user } = useAuth(); // useAuth-dan logout funksiyasını da istifadə edə bilərik
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/';
+  const handleLogout = async () => {
+    try {
+
+      await post('/api/logout', {});
+
+    } catch (error) {
+
+      console.error('Logout failed on server, proceeding with client logout:', error);
+    } finally {
+      // 2. Local Storage-dən tokeni silirik (ehtiyac olsa, AuthContext.logout istifadə edilə bilər)
+      localStorage.removeItem('token');
+
+      // 3. İstifadəçini əsas səhifəyə yönləndiririk
+      window.location.href = '/';
+    }
   };
-  const { user } = useAuth();
+
   return (
     <ClickOutside onClick={() => setDropdownOpen(false)} className="relative">
       <Link
@@ -47,7 +61,7 @@ const DropdownUser = () => {
         </svg>
       </Link>
 
-      {/* <!-- Dropdown Start --> */}
+      {/* */}
       {dropdownOpen && (
         <div
           className={`absolute right-0 mt-4 flex w-62.5 flex-col rounded-lg border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark`}
@@ -81,7 +95,7 @@ const DropdownUser = () => {
 
           </ul>
           <button
-            onClick={() => handleLogout()}
+            onClick={handleLogout} // 👈 handleLogout asinxron funksiyası çağırılır
             className="flex items-center gap-3.5 px-3.5 py-4 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base"
           >
             <svg
@@ -105,7 +119,7 @@ const DropdownUser = () => {
           </button>
         </div>
       )}
-      {/* <!-- Dropdown End --> */}
+      {/* */}
     </ClickOutside>
   );
 };

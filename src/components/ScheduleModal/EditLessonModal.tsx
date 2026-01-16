@@ -7,7 +7,6 @@ import { useParams } from 'react-router-dom';
 import useSweetAlert from '../../hooks/useSweetAlert';
 import { ClipLoader } from 'react-spinners';
 import VirtualSelect from '../Select/ScheduleSelect';
-import Swal from "sweetalert2";
 import "./EditLessonModal.css";
 
 interface EditLessonModalProps {
@@ -28,9 +27,12 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const params = useParams();
 
-  const facultyId = user.faculty_id || scheduleData.faculty?.faculty_id || params.id;
+  const facultyId =
+    user?.faculty_id ??
+    scheduleData.faculty?.faculty_id ??
+    params.id;
   const facultyName = user?.faculty_name || scheduleData.faculty?.faculty_name;
-  const isFacultyAdmin = user?.roles.includes('FacultyAdmin');
+  const isFacultyAdmin = user?.roles?.includes('FacultyAdmin');
   const { successAlert, errorAlert } = useSweetAlert();
   const [groups, setGroups] = useState<any[]>([]);
   const [hours, setHours] = useState<any[]>([]);
@@ -148,10 +150,6 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
           types: schedule.room_types,
         }]);
 
-        if (!isFacultyAdmin) {
-          await loadRooms(initialFormData.day_id, initialFormData.hour_id, initialFormData.week_type_id);
-        }
-
       } catch (error) {
         errorAlert('Xəta', 'Cədvəl məlumatı yüklənmədi');
       } finally {
@@ -214,15 +212,19 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     setLoadingStates(prev => ({ ...prev, professors: true }));
     try {
       const res = await get(`/api/lessons/${lessonId}/professor/type/${lessonTypeId}`);
-      let profArr = Array.isArray(res.data) ? res.data : res.data && res.data.professor_id ? [res.data] : [];
+      const profArr = Array.isArray(res.data)
+        ? res.data
+        : res.data && res.data.professor_id
+          ? [res.data]
+          : [];
       setProfessors(profArr);
-      setFormData(prev => ({
+      setFormData((prev: any) => ({
         ...prev,
         teacher_code: profArr[0]?.professor_id || ''
       }));
     } catch {
       setProfessors([]);
-      setFormData(prev => ({
+      setFormData((prev: any) => ({
         ...prev,
         teacher_code: ''
       }));

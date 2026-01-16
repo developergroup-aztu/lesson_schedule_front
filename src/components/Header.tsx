@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '../Context/AuthContext';
 import { useSchedule } from '../context/ScheduleContext';
 import { useParams, useLocation } from 'react-router-dom';
-import { getFile } from '../api/service';
+import { postFile } from '../api/service';
 import useSweetAlert from '../hooks/useSweetAlert';
 
 interface HeaderProps {
@@ -21,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({ onAddLesson }) => {
   // Initialize your sweet alert hook
   const { successAlert, errorAlert } = useSweetAlert();
 
-  const facultyName = user?.faculty_name || scheduleData?.faculty_name || 'Fakültə';
+  const facultyName = user?.faculty_name || scheduleData?.faculty?.faculty_name || 'Fakültə';
 
   const getFacultyId = (): string | null => {
     if (params.id) {
@@ -54,7 +54,7 @@ const Header: React.FC<HeaderProps> = ({ onAddLesson }) => {
     try {
       console.log(`Requesting PDF for faculty ${facultyId}`);
 
-      const response = await getFile(`/api/schedule/faculty/${facultyId}/print`, {
+      const response = await postFile(`/api/schedule/faculty/${facultyId}/print`, {}, {
         headers: {
           'Accept': 'application/pdf'
         }
@@ -70,20 +70,14 @@ const Header: React.FC<HeaderProps> = ({ onAddLesson }) => {
       }
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${facultyName}_cedvel.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank'); // Yeni tab-da açır
 
       setTimeout(() => {
-        window.URL.revokeObjectURL(url);
+        URL.revokeObjectURL(blobUrl);
       }, 1000);
 
-      successAlert('Uğurlu!', 'PDF uğurla endirildi!'); // Using successAlert from your hook
+      successAlert('Uğurlu!', 'PDF faylı yeni tab-da açıldı!'); // Using successAlert from your hook
 
     } catch (err: any) {
       console.error('Download error:', err);

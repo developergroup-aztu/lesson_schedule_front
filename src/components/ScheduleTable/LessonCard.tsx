@@ -1,6 +1,7 @@
 import React from 'react';
 import { Lesson } from '../../types';
 import { Lock, Plus, MapPin, User, Clock } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 interface LessonCardProps {
   lesson: Lesson;
@@ -19,6 +20,7 @@ interface LessonCardProps {
   ) => void;
   onEdit: () => void;
   onAddBeside?: () => void;
+  readOnly?: boolean;
 }
 
 const LESSON_TYPE_CLASSES: { [key: number]: string } = {
@@ -43,6 +45,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
   onOpenContextMenu,
   onEdit,
   onAddBeside,
+  readOnly = false,
 }) => {
   const {
     lesson_name,
@@ -67,6 +70,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
   const weekTypeClass = getClassName(WEEK_TYPE_CLASSES, week_type_id, 'bg-gray-600');
 
   const handleContextMenu = (e: React.MouseEvent) => {
+    if (readOnly) return;
     e.preventDefault();
     onOpenContextMenu(e, groupId, dayId, hourId, lessonIndex, week_type_id);
   };
@@ -79,6 +83,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
   const isLocked = lock_id === 1;
 
   const handleEditClick = () => {
+    if (readOnly) return;
     if (lesson.parent_group) {
       Swal.fire({
         icon: 'warning',
@@ -91,10 +96,13 @@ const LessonCard: React.FC<LessonCardProps> = ({
     onEdit();
   };
 
+
+  console.log(readOnly)
+
   return (
     <div
-      className={`lesson-card ${isMultiple ? 'border-r-2 last:border-r-0 border-dashed border-gray-200' : ''
-        } ${lessonTypeClass} p-2 rounded-lg text-xs cursor-pointer transition-colors duration-200 flex-1 relative flex items-center border`}
+      className={`lesson-card ${isMultiple ? 'border-gray-200' : ''
+        } ${lessonTypeClass} p-2 rounded-lg text-xs ${readOnly ? 'cursor-default' : 'cursor-pointer'} transition-colors duration-200 flex-1 relative flex items-center border`}
       onClick={handleEditClick}
       onContextMenu={handleContextMenu}
     >
@@ -141,17 +149,22 @@ const LessonCard: React.FC<LessonCardProps> = ({
             {isLocked && (
               <div className="flex items-center gap-2">
                 <Lock size={12} className="text-gray-500" />
-                <button
-                  className="px-1 py-0.5 text-xs bg-white rounded border border-gray-200 hover:bg-gray-50 transition-colors font-medium text-gray-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddBeside?.();
-                  }}
-                  title="Dərs əlavə et"
-                  disabled={!onAddBeside}
-                >
-                  <Plus size={12} />
-                </button>
+                {
+                  !readOnly && (
+                    <button
+                      className="px-1 py-0.5 text-xs bg-white rounded border border-gray-200 hover:bg-gray-50 transition-colors font-medium text-gray-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddBeside?.();
+                      }}
+                      title="Dərs əlavə et"
+                      disabled={!onAddBeside}
+                    >
+                      <Plus size={12} />
+                    </button>)
+                }
+
+
               </div>
             )}
           </div>

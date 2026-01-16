@@ -44,6 +44,9 @@ import MergeGroups from './pages/Merge/MergeGroups';
 
 import { ScheduleProvider } from './context/ScheduleContext';
 import Print from './pages/Print/Print';
+import Archives from './pages/Archives/Archives';
+import ArchiveFaculties from './pages/Archives/ArchiveFaculties';
+import ArchiveSchedule from './pages/Archives/ArchiveSchedule';
 
 function App() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -221,8 +224,34 @@ function App() {
                       }
                     />
 
+                  <Route
+                      path="/archives"
+                      element={
+                        <ProtectedRoute requiredPermission="view_semesters">
+                          <Archives />
+                        </ProtectedRoute>
+                      }
+                    />
 
+                         <Route
+                      path="/archives/semester/:semesterId/faculties"
+                      element={
+                        <ProtectedRoute requiredPermission="view_semesters">
+                          <ArchiveFaculties />
+                        </ProtectedRoute>
+                      }
+                    />
 
+                    <Route
+                      path="/archives/semester/:semesterId/faculties/:facultyId"
+                      element={
+                        <ProtectedRoute requiredPermission="view_semester_schedule">
+                         <ArchiveSchedule />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    
 
                     <Route
                       path="/faculties/:id"

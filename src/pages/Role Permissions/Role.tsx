@@ -5,12 +5,12 @@ import PermissionsModal from '../../components/Modals/Permissions/RolePermission
 import usePermissions from '../../hooks/usePermissions';
 import { AiOutlineDelete } from 'react-icons/ai';
 import { FaRegEdit, FaShieldAlt, FaPlus } from 'react-icons/fa';
-import { PiEyeLight } from 'react-icons/pi';
 import { HiUserGroup, HiLockClosed } from 'react-icons/hi';
 import { ClipLoader } from 'react-spinners';
 import Breadcrumb from '../../components/Breadcrumbs/Breadcrumb';
 import useSweetAlert from '../../hooks/useSweetAlert';
 
+// Permission interfeysi
 interface Permission {
   id: number;
   name: string;
@@ -19,7 +19,8 @@ interface Permission {
 interface Role {
   id: number;
   name: string;
-  permissions: Permission[];
+  permissions?: Permission[];
+  permissions_count?: number;
 }
 
 const RoleTable: React.FC = () => {
@@ -32,7 +33,6 @@ const RoleTable: React.FC = () => {
   const hasDeleteRole = usePermissions('delete_role');
   const hasEditRole = usePermissions('edit_role');
   const hasAddRole = usePermissions('add_role');
-  const hasViewRole = usePermissions('view_role');
   const { confirmAlert, successAlert, errorAlert } = useSweetAlert();
 
   useEffect(() => {
@@ -43,6 +43,7 @@ const RoleTable: React.FC = () => {
       try {
         const response = await get('/api/roles');
         if (isMounted) {
+          // Data strukturu yeniləndiyi üçün Response-un data-sı birbaşa istifadə olunur
           setRoles(response.data);
         }
       } catch (err: any) {
@@ -80,11 +81,6 @@ const RoleTable: React.FC = () => {
       setError(msg); // Set error for the component to display
       errorAlert('Xəta', msg);
     }
-  };
-
-  const openPermissionsModal = (role: Role) => {
-    setSelectedRole(role);
-    setIsPermissionsModalOpen(true);
   };
 
   // Render a full-page error if a critical error occurred and loading is complete
@@ -145,18 +141,20 @@ const RoleTable: React.FC = () => {
                   <td className="py-3 px-6 border-b">
                     <span className="font-medium text-gray-900">{role.name}</span>
                   </td>
+                  {/* DƏYİŞİKLİK: role.permissions.length yerinə role.permissions_count istifadə olunur */}
                   <td className="py-3 px-6 border-b">
                     <div className="flex items-center gap-2">
                       <div className="bg-indigo-100 text-indigo-800 px-3 py-1.5 rounded-full flex items-center gap-2">
                         <span className="text-sm font-medium">
-                          {role.permissions.length} İcazə
+                          {/* İcazə sayı üçün yeni sahə */}
+                          {role.permissions_count} İcazə
                         </span>
                       </div>
                     </div>
                   </td>
                   <td className="py-3 px-6 border-b text-center">
                     <div className="flex justify-center gap-1">
-                      {hasViewRole && (
+                      {/* {hasViewRole && (
                         <button
                           className="bg-yellow-100 hover:bg-yellow-200 text-yellow-600 p-1.5 rounded-lg transition-colors"
                           onClick={() => openPermissionsModal(role)}
@@ -164,7 +162,7 @@ const RoleTable: React.FC = () => {
                         >
                           <PiEyeLight className="w-4 h-4" />
                         </button>
-                      )}
+                      )} */}
                       {hasEditRole && (
                         <button
                           className="bg-indigo-100 hover:bg-indigo-200 text-indigo-600 p-1.5 rounded-lg transition-colors"
@@ -195,7 +193,7 @@ const RoleTable: React.FC = () => {
       {/* Mobile Card View */}
       <div className="lg:hidden space-y-3">
         {loading ? (
-          <div className="flex justify-center items-center h-40"> {/* Adjusted height for loader */}
+          <div className="flex justify-center items-center h-40">
             <div className="flex flex-col items-center gap-4">
               <ClipLoader size={30} color="#3949AB" />
             </div>
@@ -241,14 +239,14 @@ const RoleTable: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
-                  {hasViewRole && (
+                  {/* {hasViewRole && (
                     <button
                       className="bg-yellow-100 hover:bg-yellow-200 text-yellow-600 p-1.5 rounded-lg transition-colors"
                       onClick={() => openPermissionsModal(role)}
                     >
                       <PiEyeLight className="w-4 h-4" />
                     </button>
-                  )}
+                  )} */}
                   {hasEditRole && (
                     <button
                       className="bg-indigo-100 hover:bg-indigo-200 text-indigo-600 p-1.5 rounded-lg transition-colors"
@@ -272,7 +270,8 @@ const RoleTable: React.FC = () => {
                   <div className="bg-indigo-100 text-indigo-800 px-3 py-2 rounded-2xl flex items-center gap-2">
                     <HiLockClosed className="w-4 h-4" />
                     <span className="text-sm font-medium">
-                      {role.permissions.length} İcazə
+                      {/* DƏYİŞİKLİK: role.permissions.length yerinə role.permissions_count istifadə olunur */}
+                      {role.permissions_count} İcazə
                     </span>
                   </div>
                 </div>
@@ -309,7 +308,11 @@ const RoleTable: React.FC = () => {
         <PermissionsModal
           isOpen={isPermissionsModalOpen}
           onClose={() => setIsPermissionsModalOpen(false)}
-          role={selectedRole}
+          // Qeyd: Bu modalın yalnız rolu və icazə sayını alması kifayət edirsə,
+          // problem yoxdur. Əks halda, modal **Role** obyekti içində **permissions: Permission[]** gözləyirsə,
+          // ya modalı dəyişməli, ya da bu rola aid icazələrin tam siyahısı ayrı bir API çağırışı ilə
+          // bu komponentdə və ya modalın özündə gətirilməlidir.
+          role={selectedRole} 
         />
       )}
     </div>

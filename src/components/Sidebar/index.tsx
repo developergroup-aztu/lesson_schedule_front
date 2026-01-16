@@ -65,6 +65,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const canViewPermissions = usePermissions('view_permissions');
   const canViewPrints = usePermissions('view_prints');
   const canViewMergeGroups = usePermissions('view_group_merges');
+  const canViewArchives = usePermissions('view_semesters');
 
   // Close on click outside
   useEffect(() => {
@@ -169,7 +170,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       label: 'Çap',
       icon: <Printer className="w-5 h-5" />,
       permission: canViewPrints, // Assuming all authenticated users can access this
-    }
+    },
+    {
+      path: '/archives',
+      label: 'Arxivlər',  
+      icon: <Box className="w-5 h-5" />,
+      permission: canViewArchives,
+    },
   ];
 
   return (

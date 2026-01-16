@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import type { MouseEvent } from 'react';
 import Header from '../../components/Header';
 import ScheduleTable, { ScheduleTableHandle } from '../../components/ScheduleTable/ScheduleTable';
 import LessonModal from '../../components/ScheduleModal/LessonModal';
@@ -6,6 +7,7 @@ import ContextMenu from '../../components/ContextMenu';
 import { useSchedule } from '../../context/ScheduleContext';
 import EditLessonModal from '../../components/ScheduleModal/EditLessonModal';
 import usePermissions from '../../hooks/usePermissions';
+import Swal from 'sweetalert2';
 import {
   Calendar,
   BookOpen,
@@ -15,7 +17,7 @@ import {
 } from 'lucide-react';
 
 function Schedule() {
-  const { scheduleData, refreshSchedule } = useSchedule();
+  const { scheduleData } = useSchedule();
 
   const scheduleTableRef = useRef<ScheduleTableHandle | null>(null);
 
@@ -45,27 +47,27 @@ function Schedule() {
 
   const [modalData, setModalData] = useState({
     isOpen: false,
-    groupId: null,
-    groupName: null,
-    dayId: null,
-    dayName: null,
-    hourId: null,
-    hourName: null,
-    lessonIndex: null,
-    lesson: null,
+    groupId: null as number | null,
+    groupName: null as string | null,
+    dayId: null as number | null,
+    dayName: null as string | null,
+    hourId: null as number | null,
+    hourName: null as string | null,
+    lessonIndex: null as number | null,
+    lesson: null as any,
     mode: 'add',
-    weekTypeId: null,
-    schedule_group_id: null,
+    weekTypeId: null as number | null,
+    schedule_group_id: null as number | null,
   });
 
   const [contextMenu, setContextMenu] = useState({
     isOpen: false,
     position: { x: 0, y: 0 },
-    groupId: null,
-    dayId: null,
-    hourId: null,
-    lessonIndex: null,
-    weekTypeId: null,
+    groupId: null as number | null,
+    dayId: null as number | null,
+    hourId: null as number | null,
+    lessonIndex: null as number | null,
+    weekTypeId: null as number | null,
   });
 
   const canEditSchedule = usePermissions('edit_schedule');
@@ -113,27 +115,30 @@ function Schedule() {
   const currentWeekType = getCurrentWeekType();
 
   const handleAddLesson = (
-    groupId = null,
-    dayId = null,
-    hourId = null,
-    weekTypeId = 1,
+    groupId: number | null = null,
+    dayId: number | null = null,
+    hourId: number | null = null,
+    weekTypeId: number = 1,
   ) => {
     saveScrollPositions();
     let groupName = null;
     let dayName = null;
     let hourName = null;
 
-    if (groupId) {
-      const group = scheduleData.groups.find((g) => g.group_id === groupId);
+    if (groupId && scheduleData?.faculty?.groups) {
+      const group = scheduleData.faculty.groups.find((g: any) => g.group_id === groupId);
       groupName = group ? group.group_name : null;
 
-      if (dayId !== null && group?.days[dayId]) {
-        dayName = group.days[dayId].day_name;
+      if (dayId != null && group?.days[dayId as number]) {
+        const dId = dayId as number;
+        const day = group.days[dId] as any;
+        dayName = day?.day_name ?? null;
       }
 
-      if (hourId !== null && group?.days[dayId]?.hours) {
-        const hour = group.days[dayId].hours.find((h) => h.hour_id === hourId);
-        hourName = hour ? hour.hour_value : null;
+      if (hourId !== null && dayId != null && group?.days[dayId as number]?.hours) {
+        const dId = dayId as number;
+        const hour = group.days[dId].hours.find((h: any) => h.hour_id === hourId);
+        hourName = (hour as any)?.hour_value ?? null;
       }
     }
 
@@ -170,16 +175,16 @@ function Schedule() {
 
 
   const handleEditLesson = (
-    groupId,
-    dayId,
-    hourId,
-    lessonIndex,
-    weekTypeId = 1,
+    groupId: number,
+    dayId: number,
+    hourId: number,
+    lessonIndex: number,
+    weekTypeId: number = 1,
   ) => {
     saveScrollPositions();
-    const group = scheduleData.groups.find((g) => g.group_id === groupId);
-    const day = group?.days[dayId];
-    const hour = day?.hours.find((h) => h.hour_id === hourId);
+    const group = scheduleData?.faculty?.groups?.find((g: any) => g.group_id === groupId);
+    const day = group?.days[dayId] as any;
+    const hour = day?.hours.find((h: any) => h.hour_id === hourId) as any;
     const lesson = hour?.lessons[lessonIndex] || null;
 
     if (lesson?.parent_group) {
@@ -193,8 +198,8 @@ function Schedule() {
     }
 
     const groupName = group ? group.group_name : null;
-    const dayName = day ? day.day_name : null;
-    const hourName = hour ? hour.hour_value : null;
+    const dayName = day ? (day as any).day_name ?? null : null;
+    const hourName = hour ? (hour as any).hour_value ?? null : null;
 
     setModalData({
       isOpen: true,
@@ -213,12 +218,12 @@ function Schedule() {
   };
 
   const handleOpenContextMenu = (
-    e,
-    groupId,
-    dayId,
-    hourId,
-    lessonIndex,
-    weekTypeId = null,
+    e: MouseEvent,
+    groupId: number,
+    dayId: number,
+    hourId: number,
+    lessonIndex: number,
+    weekTypeId: number | null = null,
   ) => {
     e.preventDefault();
     setContextMenu({
@@ -254,27 +259,27 @@ function Schedule() {
         contextMenu.dayId,
         contextMenu.hourId,
         contextMenu.lessonIndex,
-        contextMenu.weekTypeId,
+        contextMenu.weekTypeId ?? 1,
       );
     }
     handleCloseContextMenu();
   };
 
-  const totalLessons = scheduleData.groups.reduce((total, group) => {
+  const totalLessons = scheduleData?.faculty?.groups?.reduce((total: number, group: any) => {
     return (
       total +
-      Object.values(group.days).reduce((dayTotal, day) => {
+      Object.values(group.days).reduce((dayTotal: number, day: any) => {
         return (
           dayTotal +
-          day.hours.reduce((hourTotal, hour) => {
+          day.hours.reduce((hourTotal: number, hour: any) => {
             return hourTotal + (hour.lessons?.length || 0);
           }, 0)
         );
       }, 0)
     );
-  }, 0);
+  }, 0) || 0;
 
-  const activeGroups = scheduleData.groups.length;
+  const activeGroups = scheduleData?.faculty?.groups?.length || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-indigo-50 relative overflow-hidden">
@@ -393,8 +398,7 @@ function Schedule() {
           isOpen={modalData.isOpen}
           onClose={handleCloseModal}
           modalData={modalData}
-          mode={modalData.mode}
-          onSuccess={() => Promise.resolve(refreshSchedule()).then(restoreScrollPositions)}
+          onSuccess={() => restoreScrollPositions()}
         />
       )
         : modalData.mode !== 'add' && canEditSchedule ? (
@@ -402,8 +406,7 @@ function Schedule() {
             isOpen={modalData.isOpen}
             onClose={handleCloseModal}
             modalData={modalData}
-            mode={modalData.mode}
-            onSuccess={() => Promise.resolve(refreshSchedule()).then(restoreScrollPositions)}
+            onSuccess={() => restoreScrollPositions()}
           />
         )
           : null}

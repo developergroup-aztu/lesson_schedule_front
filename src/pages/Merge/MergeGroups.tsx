@@ -17,14 +17,26 @@ interface Merge {
     group_names: string;
     lesson_type_name: string;
     semester_id: number;
+    year: string; // "20252" kimi gəlir
 }
 
-const semesterToText = (semester_id: number) => {
-    const year = Math.floor(semester_id / 10);
-    const season = semester_id % 10;
-    if (season === 1) return `${year} yaz`;
-    if (season === 2) return `${year} payız`;
-    return semester_id;
+const getSemesterText = (yearStr: string): string => {
+    if (!yearStr || yearStr.length < 5) return yearStr;
+
+    // Sonuncu rəqəmi mövsüm kimi götürürük
+    const seasonCode = yearStr.slice(-1);
+    // İlk hissəni il kimi götürürük
+    const yearPart = yearStr.slice(0, -1);
+
+    const seasons: Record<string, string> = {
+        "1": "yaz",
+        "2": "payız",
+        "5": "yay"
+    };
+
+    const seasonName = seasons[seasonCode] || "naməlum semestr";
+    
+    return `${yearPart} ${seasonName}`;
 };
 
 const MergeGroups = () => {
@@ -293,11 +305,11 @@ const MergeGroups = () => {
                     <tbody className={`${loading ? 'opacity-60' : ''}`}>
                         {error ? (
                             <tr>
-                                <td colSpan={5} className="text-center py-8 text-red-500">{error}</td>
+                                <td colSpan={6} className="text-center py-8 text-red-500">{error}</td>
                             </tr>
                         ) : merges.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="text-center py-8 text-gray-500">
+                                <td colSpan={6} className="text-center py-8 text-gray-500">
                                     {debouncedSearchTerm ? 'Axtarış nəticəsi tapılmadı' : 'Birləşmə tapılmadı'}
                                 </td>
                             </tr>
@@ -311,7 +323,7 @@ const MergeGroups = () => {
                                     <td className="py-3 px-6 border-b">{merge.lecture_name}</td>
                                     <td className="py-3 px-6 border-b">{merge.group_names}</td>
                                     <td className="py-3 px-6 border-b">{merge.lesson_type_name}</td>
-                                    <td className="py-3 px-6 border-b">{semesterToText(merge.semester_id)}</td>
+                                    <td className="py-3 px-6 border-b">{getSemesterText(merge.year)}</td>
                                     <td className="py-3 px-6 border-b text-center">
                                         <div className="flex justify-center gap-2">
 

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { get } from '../../api/service';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { ClipLoader } from 'react-spinners';
 import { Sun, Moon, Users, MapPin } from 'lucide-react';
 import Swal from 'sweetalert2';
+import usePermissions from '../../hooks/usePermissions';
 
 const dayNames = ['B.e.', 'Ç.a.', 'Ç.', 'C.a.', 'C.'];
 
@@ -18,19 +19,110 @@ const afternoonHours = [
   { hour_id: 6, hour_name: '16:35 - 17:55' },
 ];
 
+interface Semester {
+  id: number;
+  year: string;
+}
+
+const getSemesterLabel = (yearCode: string): string => {
+  if (!yearCode || yearCode.length < 5) return yearCode;
+
+  const year = yearCode.slice(0, 4);
+  const semester = yearCode.slice(4, 5);
+
+  const semesterMap: { [key: string]: string } = {
+    '1': 'Yaz Semestri',
+    '2': 'Payız Semestri',
+    '5': 'Yay Semestri',
+  };
+
+  const semesterLabel = semesterMap[semester] || 'Bilinməyən';
+  return `${year} ${semesterLabel}`;
+};
+
 const RoomSchedule = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+
   const [room, setRoom] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
+  const [selectedSemesterId, setSelectedSemesterId] = useState<number | null>(null);
+  const [selectedSemesterYear, setSelectedSemesterYear] = useState<string | null>(null);
+  const [appliedSemesterId, setAppliedSemesterId] = useState<number | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [loadingSemesters, setLoadingSemesters] = useState(false);
+  const semestersLoadedRef = useRef(false);
+  const didInitFromUrlRef = useRef(false);
+
+  // Permission yoxlaması
+  const canViewRoomArchive = usePermissions('view_room_archive');
+
+  // URL-dən semester_id parametrini yalnız ilk mount-da oxu
+  useEffect(() => {
+    if (didInitFromUrlRef.current) return;
+    didInitFromUrlRef.current = true;
+
+    const semesterIdParam = searchParams.get('semester_id');
+    // Permission yoxdursa, URL-dən semester_id oxuma
+    if (semesterIdParam && canViewRoomArchive) {
+      const semesterId = parseInt(semesterIdParam, 10);
+      if (!isNaN(semesterId)) {
+        setSelectedSemesterId(semesterId);
+        setAppliedSemesterId(semesterId);
+      }
+    }
+
+    setIsInitialized(true);
+  }, [searchParams, canViewRoomArchive]);
+
+  // Semesters listesini yalnız user interaction olanda yüklə
+  const ensureSemestersLoaded = async () => {
+    if (semestersLoadedRef.current) return;
+    semestersLoadedRef.current = true;
+    setLoadingSemesters(true);
+    try {
+      const res = await get('/api/semesters');
+      if (res.data && Array.isArray(res.data)) {
+        const sortedSemesters = [...res.data].sort((a, b) => b.year.localeCompare(a.year));
+        setSemesters(sortedSemesters);
+      }
+    } catch (err) {
+      console.error('Semesterlər yüklənə bilmədi:', err);
+      semestersLoadedRef.current = false;
+    } finally {
+      setLoadingSemesters(false);
+    }
+  };
 
   useEffect(() => {
     const fetchRoom = async () => {
+      if (!isInitialized) return;
+
       setLoading(true);
       setError(null);
       try {
-        const res = await get(`/api/rooms/${id}`);
+        let url = `/api/rooms/${id}`;
+        // Semester yalnız permission varsa sorğuya daxil edilir
+        if (appliedSemesterId !== null && canViewRoomArchive) {
+          url += `?semester_id=${appliedSemesterId}`;
+        }
+
+        const res = await get(url);
         setRoom(res.data);
+
+        const serverSemesterId =
+          typeof res.data.semester_id === 'number' ? res.data.semester_id : null;
+        const serverSemesterYear =
+          typeof res.data.semester_year === 'string' ? res.data.semester_year : null;
+
+        if (serverSemesterId !== null) {
+          setSelectedSemesterId(serverSemesterId);
+        }
+        if (serverSemesterYear) {
+          setSelectedSemesterYear(serverSemesterYear);
+        }
       } catch (err: any) {
         const msg =
           err?.response?.data?.message ||
@@ -49,7 +141,30 @@ const RoomSchedule = () => {
       }
     };
     fetchRoom();
-  }, [id]);
+  }, [id, appliedSemesterId, isInitialized]);
+
+  const semesterOptions = useMemo(() => {
+    if (loadingSemesters) {
+      return [<option key="loading" value="">Yüklənir...</option>];
+    }
+
+    if (semesters.length === 0) {
+      if (selectedSemesterId !== null && selectedSemesterYear) {
+        return [
+          <option key={selectedSemesterId} value={selectedSemesterId}>
+            {getSemesterLabel(selectedSemesterYear)}
+          </option>,
+        ];
+      }
+      return [<option key="loading" value="">Seçin</option>];
+    }
+
+    return semesters.map((semester) => (
+      <option key={semester.id} value={semester.id}>
+        {getSemesterLabel(semester.year)}
+      </option>
+    ));
+  }, [semesters, selectedSemesterId, selectedSemesterYear, loadingSemesters]);
 
   if (loading) {
     return (
@@ -376,12 +491,36 @@ const renderCellContent = (lessons: any[]) => {
 
       <div className="relative">
         {/* Page Header */}
-        <div className="mb-8">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
             <MapPin className="w-8 h-8 text-blue-600" />
             <span className="text-slate-800">Otaq:</span>
             <span className="text-blue-600">{room.corp_id} - {room.room_name}</span>
           </h1>
+          {canViewRoomArchive && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">
+                Semester:
+              </label>
+              <select
+                value={selectedSemesterId || ''}
+                onFocus={() => {
+                  void ensureSemestersLoaded();
+                }}
+                onMouseDown={() => {
+                  void ensureSemestersLoaded();
+                }}
+                onChange={(e) => {
+                  const semesterId = Number(e.target.value);
+                  setSelectedSemesterId(semesterId);
+                  setAppliedSemesterId(semesterId);
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {semesterOptions}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Morning Shift */}

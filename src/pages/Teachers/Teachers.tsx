@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { get } from '../../api/service';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PiEyeLight } from 'react-icons/pi';
@@ -16,13 +16,34 @@ interface Teacher {
   lesson_count: number;
 }
 
+interface Semester {
+  id: number;
+  year: string;
+}
+
+const getSemesterLabel = (yearCode: string): string => {
+  if (!yearCode || yearCode.length < 5) return yearCode;
+
+  const year = yearCode.slice(0, 4);
+  const semester = yearCode.slice(4, 5);
+
+  const semesterMap: { [key: string]: string } = {
+    '1': 'Yaz Semestri',
+    '2': 'Payız Semestri',
+    '5': 'Yay Semestri'
+  };
+
+  const semesterLabel = semesterMap[semester] || 'Bilinməyən';
+  return `${year} ${semesterLabel}`;
+};
+
 const Teachers: React.FC = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [, setTotal] = useState(0);
   const [perPage, setPerPage] = useState(10);
 
   // Sorting states
@@ -33,10 +54,22 @@ const Teachers: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
+  // Semester states
+  const [semesters, setSemesters] = useState<Semester[]>([]);
+  const [selectedSemesterId, setSelectedSemesterId] = useState<number | null>(null);
+  // UI-də seçilən semester (default backend-dən gələn ola bilər),
+  // sorğuya tətbiq olunan semester isə yalnız user action ilə set olunur.
+  const [appliedSemesterId, setAppliedSemesterId] = useState<number | null>(null);
+  const [selectedSemesterYear, setSelectedSemesterYear] = useState<string | null>(null);
+  const [loadingSemesters, setLoadingSemesters] = useState(false);
+  const semestersLoadedRef = useRef(false);
+
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const didInitFromUrlRef = useRef(false);
 
   const canViewTeacherSchedule = usePermissions('view_teacher');
+  const canViewTeachersArchive = usePermissions('view_teachers_archive');
 
   // Sortable columns (these are now also the searchable columns for global search)
   const sortableColumns = [
@@ -46,18 +79,51 @@ const Teachers: React.FC = () => {
     { key: 'lesson_count', label: 'Dərs sayı' },
   ];
 
-  // Initialize states from URL params on component mount
   useEffect(() => {
+    // URL parametrlərini yalnız ilk mount-da oxuyuruq
+    if (didInitFromUrlRef.current) return;
+    didInitFromUrlRef.current = true;
+
     const pageParam = parseInt(searchParams.get('page') || '1', 10);
     const sortColParam = searchParams.get('sort_col') || '';
     const sortDirParam = searchParams.get('sort_dir') || 'asc';
-    const searchTermParam = searchParams.get('search') || ''; // Only get search term
+    const searchTermParam = searchParams.get('search') || '';
+    const semesterIdParam = searchParams.get('semester_id');
 
     setCurrentPage(pageParam > 0 ? pageParam : 1);
     setSortCol(sortColParam);
     setSortDir(sortDirParam as 'asc' | 'desc');
     setSearchTerm(searchTermParam);
-  }, [searchParams]);
+
+    // Əgər URL-də semester_id varsa VƏ permission varsa, onu user seçimi kimi tətbiq edirik
+    if (semesterIdParam && canViewTeachersArchive) {
+      const semesterId = parseInt(semesterIdParam, 10);
+      if (!isNaN(semesterId)) {
+        setSelectedSemesterId(semesterId);
+        setAppliedSemesterId(semesterId);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const ensureSemestersLoaded = async () => {
+    if (semestersLoadedRef.current) return;
+    semestersLoadedRef.current = true;
+    setLoadingSemesters(true);
+    try {
+      const res = await get('/api/semesters');
+      if (res.data && Array.isArray(res.data)) {
+        const sortedSemesters = [...res.data].sort((a, b) => b.year.localeCompare(a.year));
+        setSemesters(sortedSemesters);
+      }
+    } catch (err) {
+      console.error('Semesterlər yüklənə bilmədi:', err);
+      // allow retry
+      semestersLoadedRef.current = false;
+    } finally {
+      setLoadingSemesters(false);
+    }
+  };
 
   // Update URL parameters
   const updateUrlParams = () => {
@@ -68,11 +134,15 @@ const Teachers: React.FC = () => {
     if (sortDir) newParams.set('sort_dir', sortDir);
 
     if (debouncedSearchTerm) newParams.set('search', debouncedSearchTerm);
+    
+    if (appliedSemesterId !== null) {
+      newParams.set('semester_id', String(appliedSemesterId));
+    }
 
     setSearchParams(newParams);
   };
 
-  // Fetch teachers with all parameters (pagination, sorting, global searching)
+  // Fetch teachers with all parameters (pagination, sorting, global searching, semester)
   useEffect(() => {
     let isMounted = true;
     const fetchTeachers = async () => {
@@ -81,6 +151,11 @@ const Teachers: React.FC = () => {
 
       try {
         let url = `/api/teachers?page=${currentPage}`;
+
+        // Semester yalnız user seçəndə VƏ permission varsa sorğuya daxil edilir
+        if (appliedSemesterId !== null && canViewTeachersArchive) {
+          url += `&semester_id=${appliedSemesterId}`;
+        }
 
         // Add sorting parameters
         if (sortCol && sortDir) {
@@ -102,6 +177,19 @@ const Teachers: React.FC = () => {
           setLastPage(res.data.last_page || 1);
           setTotal(res.data.total || 0);
           setPerPage(res.data.per_page || 10);
+
+          // Hər cavabda backend-dən gələn semester məlumatını select üçün göstər
+          const serverSemesterId =
+            typeof res.data.semester_id === 'number' ? res.data.semester_id : null;
+          const serverSemesterYear =
+            typeof res.data.semester_year === 'string' ? res.data.semester_year : null;
+
+          if (serverSemesterId !== null) {
+            setSelectedSemesterId(serverSemesterId);
+          }
+          if (serverSemesterYear) {
+            setSelectedSemesterYear(serverSemesterYear);
+          }
         } else {
           setTeachers([]);
           setError('Serverdən düzgün müəllim məlumatı gəlmədi.');
@@ -124,7 +212,32 @@ const Teachers: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [currentPage, sortCol, sortDir, debouncedSearchTerm]); // Dependencies for re-fetching data
+  }, [currentPage, sortCol, sortDir, debouncedSearchTerm, appliedSemesterId]); // Dependencies for re-fetching data
+
+  const semesterSelectOptions = useMemo(() => {
+    // Əgər semestrlər yüklənirsə, loading göstər
+    if (loadingSemesters) {
+      return [<option key="loading" value="">Yüklənir...</option>];
+    }
+
+    // Əgər semestrlər hələ yüklənməyibsə, ən azından current defaultu göstərək
+    if (semesters.length === 0) {
+      if (selectedSemesterId !== null && selectedSemesterYear) {
+        return [
+          <option key={selectedSemesterId} value={selectedSemesterId}>
+            {getSemesterLabel(selectedSemesterYear)}
+          </option>,
+        ];
+      }
+      return [<option key="loading" value="">Seçin</option>];
+    }
+
+    return semesters.map((semester) => (
+      <option key={semester.id} value={semester.id}>
+        {getSemesterLabel(semester.year)}
+      </option>
+    ));
+  }, [semesters, selectedSemesterId, selectedSemesterYear, loadingSemesters]);
 
   // Axtarış başladığında səhifəni 1-ə sıfırla
 useEffect(() => {
@@ -230,6 +343,34 @@ useEffect(() => {
               className="px-3 py-2 border border-gray-300 outline-none rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
+          {canViewTeachersArchive && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="semester-select" className="text-sm font-medium text-gray-700">
+                Semester:
+              </label>
+              <select
+                id="semester-select"
+                value={selectedSemesterId || ''}
+                onFocus={() => {
+                  // yalnız user interaction olanda yüklə
+                  void ensureSemestersLoaded();
+                }}
+                onMouseDown={() => {
+                  // bəzi brauzerlərdə focus gec düşür, ona görə klikdə də çağırırıq
+                  void ensureSemestersLoaded();
+                }}
+                onChange={(e) => {
+                  const semesterId = e.target.value ? Number(e.target.value) : null;
+                  setSelectedSemesterId(semesterId);
+                  setAppliedSemesterId(semesterId);
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {semesterSelectOptions}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -285,7 +426,13 @@ useEffect(() => {
                      <td className="py-3 px-6 border-b text-center">
                     <button
                       className="bg-yellow-100 hover:bg-yellow-200 text-yellow-600 p-1.5 rounded-lg transition-colors"
-                      onClick={() => navigate(`/teachers/${teacher.id}`)}
+                      onClick={() => {
+                        const url =
+                          selectedSemesterId && canViewTeachersArchive
+                            ? `/teachers/${teacher.id}?semester_id=${selectedSemesterId}`
+                            : `/teachers/${teacher.id}`;
+                        navigate(url);
+                      }}
                       title="Cədvələ bax"
                     >
                       <PiEyeLight className="w-5 h-5" />

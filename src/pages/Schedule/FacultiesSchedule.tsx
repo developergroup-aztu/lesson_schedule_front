@@ -31,46 +31,47 @@ const FacultyList: React.FC = () => {
     // eslint-disable-next-line
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchFaculties = async (page = 1) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await get(`/api/faculties?page=${page}`);
-        if (!isMounted) return;
-        if (res.data && Array.isArray(res.data.data)) {
-          setFaculties(res.data.data);
-          setCurrentPage(res.data.current_page || 1);
-          setLastPage(res.data.last_page || 1);
-          setTotal(res.data.total || 0);
-          setPerPage(res.data.per_page || 10);
-        } else {
-          setFaculties([]);
-          const errMsg = 'Serverdən düzgün data gəlmədi.';
-          setError(errMsg);
-          errorAlert('Xəta', errMsg);
-        }
-      } catch (err: any) {
-        if (!isMounted) return;
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          'Fakültələr yüklənmədi';
-        setError(msg);
+useEffect(() => {
+  let isMounted = true;
+  const fetchFaculties = async (page = 1) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await get(`/api/faculties?page=${page}`);
+      if (!isMounted) return;
+      // Yeni struktur: res.data.data.data
+      const paged = res.data?.data;
+if (paged && Array.isArray(paged.data)) {
+  setFaculties(paged.data);
+  setCurrentPage(paged.current_page || 1);
+  setLastPage(paged.last_page || 1);
+  setTotal(paged.total || 0);
+  setPerPage(paged.per_page || 10);
+}else {
         setFaculties([]);
-        errorAlert('Xəta', msg);
-      } finally {
-        if (isMounted) setLoading(false);
+        const errMsg = 'Serverdən düzgün data gəlmədi.';
+        setError(errMsg);
+        errorAlert('Xəta', errMsg);
       }
-    };
-    fetchFaculties(currentPage);
-    setSearchParams({ page: String(currentPage) });
-    return () => {
-      isMounted = false;
-    };
-  }, [currentPage, setSearchParams]);
-
+    } catch (err: any) {
+      if (!isMounted) return;
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Fakültələr yüklənmədi';
+      setError(msg);
+      setFaculties([]);
+      errorAlert('Xəta', msg);
+    } finally {
+      if (isMounted) setLoading(false);
+    }
+  };
+  fetchFaculties(currentPage);
+  setSearchParams({ page: String(currentPage) });
+  return () => {
+    isMounted = false;
+  };
+}, [currentPage, setSearchParams]);
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= lastPage) {
       setCurrentPage(page);

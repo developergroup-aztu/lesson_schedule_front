@@ -9,7 +9,7 @@ import type { Hour as HourType } from '../../types';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../Context/AuthContext';
 import { createPortal } from 'react-dom';
- 
+
 
 // Key for localStorage
 const LOCAL_STORAGE_STATS_KEY = 'scheduleStatsPanelVisible';
@@ -88,7 +88,7 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
   useEffect(() => {
     try {
       localStorage.setItem(LOCAL_STORAGE_STATS_KEY, JSON.stringify(showStatsPanel));
-    } catch {}
+    } catch { }
   }, [showStatsPanel]);
 
   // Sync selected filters to URL
@@ -123,14 +123,14 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
   const afternoonHourIds = hours.slice(3, 6).map((h) => h.id);
 
   // Memoized search filtered options - Bu performans problemini çözüyor
-  const searchFilteredGroups = useMemo(() => 
-    groups.filter(g => 
+  const searchFilteredGroups = useMemo(() =>
+    groups.filter(g =>
       g.group_name.toLowerCase().includes(groupSearch.toLowerCase())
     ), [groups, groupSearch]
   );
 
-  const searchFilteredHours = useMemo(() => 
-    hours.filter(h => 
+  const searchFilteredHours = useMemo(() =>
+    hours.filter(h =>
       h.time.toLowerCase().includes(hourSearch.toLowerCase())
     ), [hours, hourSearch]
   );
@@ -147,8 +147,8 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
 
   // Group selection handlers
   const handleGroupToggle = (groupId: number) => {
-    setSelectedGroups(prev => 
-      prev.includes(groupId) 
+    setSelectedGroups(prev =>
+      prev.includes(groupId)
         ? prev.filter(id => id !== groupId)
         : [...prev, groupId]
     );
@@ -164,8 +164,8 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
 
   // Hour selection handlers
   const handleHourToggle = (hourId: number) => {
-    setSelectedHours(prev => 
-      prev.includes(hourId) 
+    setSelectedHours(prev =>
+      prev.includes(hourId)
         ? prev.filter(id => id !== hourId)
         : [...prev, hourId]
     );
@@ -180,175 +180,174 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
   };
 
   // Custom Multi-Select Component
-const MultiSelectDropdown = ({
-  label,
-  items,
-  selectedItems,
-  onToggle,
-  onSelectAll,
-  searchValue,
-  onSearchChange,
-  isOpen,
-  onToggleOpen,
-  getItemId,
-  getItemLabel,
-  placeholder,
-  quickSelectOptions,
-  onQuickSelect
-}: any) => {
-  const buttonRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const MultiSelectDropdown = ({
+    label,
+    items,
+    selectedItems,
+    onToggle,
+    onSelectAll,
+    searchValue,
+    onSearchChange,
+    isOpen,
+    onToggleOpen,
+    getItemId,
+    getItemLabel,
+    placeholder,
+    quickSelectOptions,
+    onQuickSelect
+  }: any) => {
+    const buttonRef = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom,
-        left: rect.left,
-        width: rect.width
-      });
-    } else if (!isOpen) {
-      setPosition(null);
-    }
-  }, [isOpen]);
+    useEffect(() => {
+      if (isOpen && buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setPosition({
+          top: rect.bottom,
+          left: rect.left,
+          width: rect.width
+        });
+      } else if (!isOpen) {
+        setPosition(null);
+      }
+    }, [isOpen]);
 
-  const dropdownContent = position && isOpen ? (
-    <div
-      className="bg-white border border-slate-200 rounded-xl shadow-xl z-[9999] max-h-64 overflow-auto"
-      style={{
-        position: "fixed",
-        top: position.top,
-        left: position.left,
-        width: position.width
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="p-3 border-b border-slate-100">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder={`${label} axtar...`}
-            value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-300"
-            autoFocus
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      </div>
-      <div className="p-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelectAll();
-          }}
-          className="w-full text-left px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
-        >
-          {selectedItems.length ===
-          items.filter((item: any) =>
-            getItemLabel(item).toLowerCase().includes(searchValue.toLowerCase())
-          ).length
-            ? "Hamısını ləğv et"
-            : "Hamısını seç"}
-        </button>
-        {Array.isArray(quickSelectOptions) && quickSelectOptions.length > 0 && (
-          <div className="flex gap-2 px-2 pt-1">
-            {quickSelectOptions.map((opt: any) => (
-              <button
-                key={opt.label}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onQuickSelect && onQuickSelect(opt.ids);
-                }}
-                className="flex-1 text-center px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-150"
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="max-h-40 overflow-y-auto">
-        {items
-          .filter((item: any) =>
-            getItemLabel(item).toLowerCase().includes(searchValue.toLowerCase())
-          )
-          .map((item: any) => (
-            <label
-              key={getItemId(item)}
-              className="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer transition-colors duration-150"
+    const dropdownContent = position && isOpen ? (
+      <div
+        className="bg-white border border-slate-200 rounded-xl shadow-xl z-[9999] max-h-64 overflow-auto"
+        style={{
+          position: "fixed",
+          top: position.top,
+          left: position.left,
+          width: position.width
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-3 border-b border-slate-100">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder={`${label} axtar...`}
+              value={searchValue}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-300"
+              autoFocus
               onClick={(e) => e.stopPropagation()}
-            >
-              <input
-                type="checkbox"
-                checked={selectedItems.includes(getItemId(item))}
-                onChange={() => onToggle(getItemId(item))}
-                className="mr-3 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm text-slate-700">{getItemLabel(item)}</span>
-            </label>
-          ))}
-      </div>
-    </div>
-  ) : null;
-
-  return (
-    <div className="relative">
-      <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
-      <div className="relative">
-        <div
-          ref={buttonRef}
-          className="flex items-center justify-between bg-white border-2 border-slate-200 rounded-xl px-4 py-3 min-w-[200px] hover:border-blue-300 transition-colors duration-200 cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleOpen();
-          }}
-        >
-          <div className="flex-1">
-            {selectedItems.length === 0 ? (
-              <span className="text-slate-500 text-sm">{placeholder}</span>
-            ) : (
-              <div className="flex flex-wrap gap-1">
-                {selectedItems.slice(0, 3).map((itemId: number) => {
-                  const item = items.find((i: any) => getItemId(i) === itemId);
-                  return item ? (
-                    <span
-                      key={itemId}
-                      className="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-medium"
-                    >
-                      {getItemLabel(item)}
-                    </span>
-                  ) : null;
-                })}
-                {selectedItems.length > 3 && (
-                  <span className="inline-flex items-center bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-xs font-medium">
-                    +{selectedItems.length - 3}
-                  </span>
-                )}
-              </div>
-            )}
+            />
           </div>
-          <ChevronDown
-            className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
-              isOpen ? "rotate-180" : ""
-            }`}
-          />
+        </div>
+        <div className="p-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectAll();
+            }}
+            className="w-full text-left px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
+          >
+            {selectedItems.length ===
+              items.filter((item: any) =>
+                getItemLabel(item).toLowerCase().includes(searchValue.toLowerCase())
+              ).length
+              ? "Hamısını ləğv et"
+              : "Hamısını seç"}
+          </button>
+          {Array.isArray(quickSelectOptions) && quickSelectOptions.length > 0 && (
+            <div className="flex gap-2 px-2 pt-1">
+              {quickSelectOptions.map((opt: any) => (
+                <button
+                  key={opt.label}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuickSelect && onQuickSelect(opt.ids);
+                  }}
+                  className="flex-1 text-center px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-150"
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="max-h-40 overflow-y-auto">
+          {items
+            .filter((item: any) =>
+              getItemLabel(item).toLowerCase().includes(searchValue.toLowerCase())
+            )
+            .map((item: any) => (
+              <label
+                key={getItemId(item)}
+                className="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer transition-colors duration-150"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedItems.includes(getItemId(item))}
+                  onChange={() => onToggle(getItemId(item))}
+                  className="mr-3 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700">{getItemLabel(item)}</span>
+              </label>
+            ))}
         </div>
       </div>
-      {dropdownContent && createPortal(dropdownContent, document.body)}
-    </div>
-  );
-};
+    ) : null;
+
+    return (
+      <div className="relative">
+        <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
+        <div className="relative">
+          <div
+            ref={buttonRef}
+            className="flex items-center justify-between bg-white border-2 border-slate-200 rounded-xl px-4 py-3 min-w-[200px] hover:border-blue-300 transition-colors duration-200 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleOpen();
+            }}
+          >
+            <div className="flex-1">
+              {selectedItems.length === 0 ? (
+                <span className="text-slate-500 text-sm">{placeholder}</span>
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {selectedItems.slice(0, 3).map((itemId: number) => {
+                    const item = items.find((i: any) => getItemId(i) === itemId);
+                    return item ? (
+                      <span
+                        key={itemId}
+                        className="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-medium"
+                      >
+                        {getItemLabel(item)}
+                      </span>
+                    ) : null;
+                  })}
+                  {selectedItems.length > 3 && (
+                    <span className="inline-flex items-center bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-xs font-medium">
+                      +{selectedItems.length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <ChevronDown
+              className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+                }`}
+            />
+          </div>
+        </div>
+        {dropdownContent && createPortal(dropdownContent, document.body)}
+      </div>
+    );
+  };
 
   // Enhanced Filter UI
   const renderFilterBar = () => (
-    <div className={`bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-lg p-6 mb-6 ${tableMaximized ? 'hidden' : ''}`}>
+    <div className={`bg-white/80 backdrop-blur-sm border border-white/60 shadow-lg p-6 mb-6 ${tableMaximized ? 'hidden' : ''}`}>
       <div className="flex items-center gap-3 mb-4">
         <Filter className="w-5 h-5 text-slate-600" />
         <h3 className="text-lg font-semibold text-slate-800">Filterlər</h3>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <MultiSelectDropdown
           label="Qruplar"
@@ -367,7 +366,7 @@ const MultiSelectDropdown = ({
           getItemLabel={(item: any) => item.group_name}
           placeholder="Qrup seçin..."
         />
-        
+
         <MultiSelectDropdown
           label="Saatlar"
           items={searchFilteredHours}
@@ -391,7 +390,7 @@ const MultiSelectDropdown = ({
           onQuickSelect={(ids: number[]) => setSelectedHours(ids)}
         />
       </div>
-      
+
       {(selectedGroups.length > 0 || selectedHours.length > 0) && (
         <div className="mt-6 pt-4 border-t border-slate-200">
           <div className="flex items-center justify-between">
@@ -410,8 +409,8 @@ const MultiSelectDropdown = ({
             </div>
             <button
               className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-200"
-              onClick={() => { 
-                setSelectedGroups([]); 
+              onClick={() => {
+                setSelectedGroups([]);
                 setSelectedHours([]);
                 setGroupSearch('');
                 setHourSearch('');
@@ -467,9 +466,8 @@ const MultiSelectDropdown = ({
 
   // Unified table
   const renderUnifiedTable = () => (
-<div className={`schedule-table-container relative overflow-x-auto transition-all duration-300 ${
-  tableMaximized ? 'fixed inset-0 z-[9999] bg-white' : ''
-}`}>
+    <div className={`schedule-table-container relative overflow-x-auto transition-all duration-300 ${tableMaximized ? 'fixed inset-0 z-[9999] bg-white' : ''
+      }`}>
       <div className={`flex justify-end items-center mb-4 pr-4 ${tableMaximized ? 'absolute  top-1  right-1 z-50' : 'relative'}`}>
         <button
           onClick={handleToggleMaximize}
@@ -488,9 +486,8 @@ const MultiSelectDropdown = ({
         </button>
       </div>
 
-      <div ref={scrollContainerRef} className={`schedule-table-scroll overflow-auto ${
-        tableMaximized ? 'h-[98vh]' : 'max-h-[80vh]'
-      }`}>
+      <div ref={scrollContainerRef} className={`schedule-table-scroll overflow-auto ${tableMaximized ? 'h-[98vh]' : 'max-h-[80vh]'
+        }`}>
         <table className="border-collapse w-full">
           <TableHeader hours={filteredHours} />
           <tbody className="divide-y divide-slate-200/50">
@@ -555,7 +552,7 @@ const MultiSelectDropdown = ({
 
   return (
     <div
-  className={`schedule-area min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 ${tableMaximized ? 'fixed inset-0 overflow-hidden z-[9999]' : ''}`}
+      className={`schedule-area min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 ${tableMaximized ? 'fixed inset-0 overflow-hidden z-[9999]' : ''}`}
     >
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200/20 to-indigo-200/20 rounded-full blur-3xl animate-pulse" />

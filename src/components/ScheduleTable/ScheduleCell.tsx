@@ -24,6 +24,7 @@ interface ScheduleCellProps {
     lessonIndex: number,
     weekTypeId: number,
   ) => void;
+  readOnly?: boolean;
 }
 
 const ScheduleCell: React.FC<ScheduleCellProps> = ({
@@ -34,6 +35,7 @@ const ScheduleCell: React.FC<ScheduleCellProps> = ({
   onAddLesson,
   onOpenContextMenu,
   onEditLesson,
+  readOnly = false,
 }) => {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [forceSplit, setForceSplit] = useState(false);
@@ -114,16 +116,16 @@ const ScheduleCell: React.FC<ScheduleCellProps> = ({
           groupId={groupId}
           dayId={dayId}
           hourId={hourId}
-          weekTypeId={weekTypeId}
           isMultiple={lessons.length > 1}
           onOpenContextMenu={onOpenContextMenu}
           onEdit={() =>
             onEditLesson(groupId, dayId, hourId, getOriginalLessonIndex(weekTypeId, index), weekTypeId)
           }
-          onAddBeside={lesson.lock_id === 1 ? () => handleAddBeside(weekTypeId, index) : undefined}
+          onAddBeside={lesson.lock_id === 1 && !readOnly ? () => handleAddBeside(weekTypeId, index) : undefined}
+          readOnly={readOnly}
         />
       ))}
-      {lessons.length === 0 && (
+      {lessons.length === 0 && !readOnly && (
         <button
           onClick={() => onAddLesson(groupId, dayId, hourId, weekTypeId)}
           className={`flex items-center justify-center gap-1 text-xs ${textColor} hover:${textColor.replace(
@@ -134,6 +136,11 @@ const ScheduleCell: React.FC<ScheduleCellProps> = ({
           <Plus size={12} />
           {emptyText}
         </button>
+      )}
+      {lessons.length === 0 && readOnly && (
+        <div className="h-full min-h-[100px] flex items-center justify-center text-slate-300">
+          —
+        </div>
       )}
       {addMenuTarget && addMenuTarget.weekType === weekTypeId && (
         <div
@@ -213,7 +220,11 @@ const ScheduleCell: React.FC<ScheduleCellProps> = ({
   // Empty cell
   return (
     <td className="border border-gray-200 p-1 min-w-[200px] bg-white">
-      {showAddMenu ? (
+      {readOnly ? (
+        <div className="h-full min-h-[100px] flex items-center justify-center text-slate-300">
+          —
+        </div>
+      ) : showAddMenu ? (
         <div
           ref={emptyCellMenuRef}
           className="flex flex-col gap-2 items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200"
