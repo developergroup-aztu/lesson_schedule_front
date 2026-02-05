@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react';
-import type { MouseEvent } from 'react';
 import Header from '../../components/Header';
 import ScheduleTable, { ScheduleTableHandle } from '../../components/ScheduleTable/ScheduleTable';
 import LessonModal from '../../components/ScheduleModal/LessonModal';
@@ -18,6 +17,10 @@ import {
 
 function Schedule() {
   const { scheduleData } = useSchedule();
+
+  // `ScheduleContext` normalizes groups as `scheduleData.groups`.
+  // Older code sometimes expects `scheduleData.faculty.groups`, so we support both.
+  const groups: any[] = (scheduleData as any)?.groups || (scheduleData as any)?.faculty?.groups || [];
 
   const scheduleTableRef = useRef<ScheduleTableHandle | null>(null);
 
@@ -125,20 +128,17 @@ function Schedule() {
     let dayName = null;
     let hourName = null;
 
-    if (groupId && scheduleData?.faculty?.groups) {
-      const group = scheduleData.faculty.groups.find((g: any) => g.group_id === groupId);
+    if (groupId && groups) {
+      const group = groups.find((g: any) => g.group_id === groupId);
       groupName = group ? group.group_name : null;
 
-      if (dayId != null && group?.days[dayId as number]) {
-        const dId = dayId as number;
-        const day = group.days[dId] as any;
-        dayName = day?.day_name ?? null;
+      if (dayId !== null && group?.days[dayId]) {
+        dayName = group.days[dayId].day_name;
       }
 
-      if (hourId !== null && dayId != null && group?.days[dayId as number]?.hours) {
-        const dId = dayId as number;
-        const hour = group.days[dId].hours.find((h: any) => h.hour_id === hourId);
-        hourName = (hour as any)?.hour_value ?? null;
+      if (dayId !== null && hourId !== null && group?.days[dayId]?.hours) {
+        const hour = group.days[dayId].hours.find((h: any) => h.hour_id === hourId);
+        hourName = hour ? hour.hour_value : null;
       }
     }
 
@@ -182,10 +182,19 @@ function Schedule() {
     weekTypeId: number = 1,
   ) => {
     saveScrollPositions();
-    const group = scheduleData?.faculty?.groups?.find((g: any) => g.group_id === groupId);
-    const day = group?.days[dayId] as any;
-    const hour = day?.hours.find((h: any) => h.hour_id === hourId) as any;
+    const group = groups?.find((g: any) => g.group_id === groupId);
+    const day = group?.days[dayId];
+    const hour = day?.hours.find((h: any) => h.hour_id === hourId);
     const lesson = hour?.lessons[lessonIndex] || null;
+
+    console.log('handleEditLesson - Lesson data:', {
+      lesson,
+      schedule_group_id: lesson?.schedule_group_id,
+      groupId,
+      dayId,
+      hourId,
+      lessonIndex
+    });
 
     if (lesson?.parent_group) {
       Swal.fire({
@@ -198,8 +207,8 @@ function Schedule() {
     }
 
     const groupName = group ? group.group_name : null;
-    const dayName = day ? (day as any).day_name ?? null : null;
-    const hourName = hour ? (hour as any).hour_value ?? null : null;
+    const dayName = day ? day.day_name : null;
+    const hourName = hour ? hour.hour_value : null;
 
     setModalData({
       isOpen: true,
@@ -218,7 +227,7 @@ function Schedule() {
   };
 
   const handleOpenContextMenu = (
-    e: MouseEvent,
+    e: React.MouseEvent,
     groupId: number,
     dayId: number,
     hourId: number,
@@ -265,7 +274,7 @@ function Schedule() {
     handleCloseContextMenu();
   };
 
-  const totalLessons = scheduleData?.faculty?.groups?.reduce((total: number, group: any) => {
+  const totalLessons = groups?.reduce((total: number, group: any) => {
     return (
       total +
       Object.values(group.days).reduce((dayTotal: number, day: any) => {
@@ -279,7 +288,7 @@ function Schedule() {
     );
   }, 0) || 0;
 
-  const activeGroups = scheduleData?.faculty?.groups?.length || 0;
+  const activeGroups = groups?.length || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-indigo-50 relative overflow-hidden">
@@ -398,7 +407,9 @@ function Schedule() {
           isOpen={modalData.isOpen}
           onClose={handleCloseModal}
           modalData={modalData}
-          onSuccess={() => restoreScrollPositions()}
+          onSuccess={() => {
+            restoreScrollPositions();
+          }}
         />
       )
         : modalData.mode !== 'add' && canEditSchedule ? (
@@ -406,7 +417,9 @@ function Schedule() {
             isOpen={modalData.isOpen}
             onClose={handleCloseModal}
             modalData={modalData}
-            onSuccess={() => restoreScrollPositions()}
+            onSuccess={() => {
+              restoreScrollPositions();
+            }}
           />
         )
           : null}

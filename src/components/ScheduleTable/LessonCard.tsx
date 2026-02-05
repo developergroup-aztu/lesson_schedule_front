@@ -18,7 +18,7 @@ interface LessonCardProps {
     lessonIndex: number,
     weekTypeId: number,
   ) => void;
-  onEdit: () => void;
+  onEdit: (lesson: Lesson) => void;
   onAddBeside?: () => void;
   readOnly?: boolean;
 }
@@ -93,7 +93,7 @@ const LessonCard: React.FC<LessonCardProps> = ({
       });
       return;
     }
-    onEdit();
+    onEdit(lesson);
   };
 
 

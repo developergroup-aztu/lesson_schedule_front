@@ -30,24 +30,25 @@ export interface Subject {
 
 export interface Lesson {
   schedule_id: number;
-  schedule_group_id?: number;
+  schedule_group_id?: number; // Backend'den gələ bilər
   subject_id: number;
   subject_name: string;
-  lesson_name?: string;
   lesson_type_id: number;
   lesson_type_name: string;
   teacher: Teacher;
-  teacher_name?: string;
-  teacher_surname?: string;
   room: Room;
-  room_name?: string;
-  corp_id?: number | null;
   week_type_id: number;
   week_type_name: string;
   confirm_status: number;
   blocked: boolean;
-  lock_id?: number;
-  parent_group?: number | null;
+  parent_group?: number | null; // Birləşdirilmiş qrup üçün
+  lesson_name?: string; // Bəzi hallarda lesson_name də gələ bilər
+  teacher_name?: string;
+  teacher_surname?: string;
+  teacher_code?: string;
+  room_name?: string;
+  room_id?: number;
+  corp_id?: number;
 }
 
 export interface HourWithLessons {
@@ -94,4 +95,7 @@ export interface ScheduleContextType {
   editLesson: (groupId: number, dayId: number, hourId: number, lessonIndex: number, updatedLesson: Lesson) => void;
   deleteLesson: (groupId: number, dayId: number, hourId: number, lessonIndex: number) => void;
   toggleBlockStatus: (groupId: number, dayId: number, hourId: number, lessonIndex: number) => void;
+  refreshSchedule: (selectedGroupIds?: number[], selectedHourIds?: number[]) => Promise<any>;
+  loading: boolean;
+  hasError: boolean;
 }

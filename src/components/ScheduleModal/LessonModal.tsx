@@ -21,16 +21,14 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
   modalData,
   onSuccess = () => { },
 }) => {
-  const { scheduleData } = useSchedule();
+  const { scheduleData, refreshSchedule } = useSchedule();
   const { user } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
   const params = useParams();
 
-  const facultyId =
-    user?.faculty_id ??
-    scheduleData.faculty?.faculty_id ??
-    params.id;
-  const facultyName = user?.faculty_name || scheduleData.faculty?.faculty_name;
+  const facultyId = (user as any)?.faculty_id || scheduleData.faculty?.faculty_id || params.id;
+  const facultyName = (user as any)?.faculty_name || scheduleData.faculty?.faculty_name;
+  // const isFacultyAdmin = (user as any)?.roles?.includes('FacultyAdmin');
 
   // State-lər
   const [groups, setGroups] = useState<any[]>([]);
@@ -367,7 +365,7 @@ const loadGroups = async () => {
       return;
     }
 
-    setLoadingStates((prev) => ({ ...prev, lessonTypeProfessors: true }));
+    setLoadingStates(prev => ({ ...prev, lessonTypeProfessors: true }));
 
     try {
       const response = await get(`/api/lessons/${lessonId}/professor/type/${lessonTypeId}`);
@@ -383,7 +381,7 @@ const loadGroups = async () => {
 
       setProfessors(professorsData);
       setCurrentProfessorsLessonTypeId(cacheKey);
-      setLoadedData((prev) => ({ ...prev, lessonTypeProfessors: true }));
+      setLoadedData(prev => ({ ...prev, lessonTypeProfessors: true }));
 
       if (professorsData.length > 0) {
         setFormData((prev: any) => ({
@@ -396,7 +394,7 @@ const loadGroups = async () => {
       setProfessors([]);
       setCurrentProfessorsLessonTypeId(null);
     } finally {
-      setLoadingStates((prev) => ({ ...prev, lessonTypeProfessors: false }));
+      setLoadingStates(prev => ({ ...prev, lessonTypeProfessors: false }));
     }
   };
 
@@ -429,15 +427,16 @@ const loadGroups = async () => {
 
     try {
       // Yuxarıda göstərdiyin endpoint formatını istifadə edirəm.
-      const endpoint = `/api/rooms?week_type_id=${formData.week_type_id}&day_id=${formData.day_id}&hour_id=${formData.hour_id}`;
+      const endpoint = `/api/rooms?week_type_id=${formData.week_type_id}&day_id=${formData.day_id}&hour_id=${formData.hour_id}&faculty_id=${facultyId}`;
       const response = await get(endpoint);
 
-      // API-dən gələn datanı yoxlayıram və `setRooms` ilə state-ə yazıram.
-      if (response.data && Array.isArray(response.data)) {
-        setRooms(response.data);
-      } else {
-        setRooms([]);
-      }
+      // API bəzən { data: [...] } formatında qayıdır
+      const roomsArr =
+        Array.isArray(response.data) ? response.data :
+          Array.isArray((response.data as any)?.data) ? (response.data as any).data :
+            [];
+
+      setRooms(roomsArr);
 
       // Yüklənmə prosesinin bitdiyini qeyd edirəm.
       setLoadedData(prev => ({ ...prev, rooms: true }));
@@ -464,7 +463,7 @@ const loadGroups = async () => {
           newFormData.lesson_id = '';
           setSubjects([]);
           setCurrentSubjectsGroupId(null);
-          setLoadedData((prev: any) => ({ ...prev, subjects: false }));
+          setLoadedData(prev => ({ ...prev, subjects: false }));
           loadSubjects(groupId);
         }
       }
@@ -473,7 +472,7 @@ const loadGroups = async () => {
         // Otaq seçimini sıfırla, çünki yeni vaxt üçün fərqli otaqlar gələcək.
         newFormData.room_id = '';
         // Əgər əvvəlki "rooms" datası yüklənmişdisə, yenidən yüklənmək üçün statusu "false" et.
-        setLoadedData((prevLoaded: any) => ({ ...prevLoaded, rooms: false }));
+        setLoadedData(prevLoaded => ({ ...prevLoaded, rooms: false }));
       }
 
       if (name === 'lesson_type_id' && value) {
@@ -481,7 +480,7 @@ const loadGroups = async () => {
           newFormData.teacher_code = '';
           setProfessors([]);
           setCurrentProfessorsLessonTypeId(null);
-          setLoadedData((prev: any) => ({ ...prev, lessonTypeProfessors: false }));
+          setLoadedData(prev => ({ ...prev, lessonTypeProfessors: false }));
           loadProfessorsByLessonType(newFormData.lesson_id, value);
         }
       }
@@ -491,7 +490,7 @@ const loadGroups = async () => {
           newFormData.teacher_code = '';
           setProfessors([]);
           setCurrentProfessorsLessonTypeId(null);
-          setLoadedData((prev: any) => ({ ...prev, lessonTypeProfessors: false }));
+          setLoadedData(prev => ({ ...prev, lessonTypeProfessors: false }));
           loadProfessorsByLessonType(value, newFormData.lesson_type_id);
         }
       }
@@ -530,7 +529,7 @@ const loadGroups = async () => {
       newErrors.week_type_id = 'Həftə tipi seçilməlidir';
     }
 
-      setErrors(newErrors);
+    setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -570,9 +569,10 @@ const loadGroups = async () => {
 
       successAlert('Uğurlu', 'Dərs uğurla əlavə olundu!');
 
-      if (onSuccess) {
-        onSuccess();
-      }
+      // Refresh table immediately (no manual page refresh)
+      await refreshSchedule();
+      onClose();
+      if (onSuccess) onSuccess();
     } catch (error: any) {
       let message = 'Xəta baş verdi! Zəhmət olmasa yenidən cəhd edin.';
       if (error?.response?.data?.message) {

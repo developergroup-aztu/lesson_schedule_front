@@ -22,17 +22,14 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
   modalData,
   onSuccess = () => { },
 }) => {
-  const { scheduleData } = useSchedule();
+  const { scheduleData, refreshSchedule } = useSchedule();
   const { user } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
   const params = useParams();
 
-  const facultyId =
-    user?.faculty_id ??
-    scheduleData.faculty?.faculty_id ??
-    params.id;
-  const facultyName = user?.faculty_name || scheduleData.faculty?.faculty_name;
-  const isFacultyAdmin = user?.roles?.includes('FacultyAdmin');
+  const facultyId = (user as any)?.faculty_id || scheduleData.faculty?.faculty_id || params.id;
+  const facultyName = (user as any)?.faculty_name || scheduleData.faculty?.faculty_name;
+  const isFacultyAdmin = (user as any)?.roles?.includes('FacultyAdmin');
   const { successAlert, errorAlert } = useSweetAlert();
   const [groups, setGroups] = useState<any[]>([]);
   const [hours, setHours] = useState<any[]>([]);
@@ -55,6 +52,9 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     hours: false,
     weekTypes: false,
   });
+
+  // Dedupe concurrent room requests (prevents double fetch + false error alert)
+  const roomsRequestRef = useRef<{ key: string; inFlight: boolean }>({ key: '', inFlight: false });
 
   const [formData, setFormData] = useState<any>({
     group_id: [],
@@ -108,7 +108,16 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !modalData.schedule_group_id) return;
+    if (!isOpen || !modalData.schedule_group_id) {
+      console.log('EditLessonModal - Fetching prevented:', {
+        isOpen,
+        schedule_group_id: modalData.schedule_group_id,
+        modalData
+      });
+      return;
+    }
+
+    console.log('EditLessonModal - Fetching schedule:', modalData.schedule_group_id);
 
     const fetchSchedule = async () => {
       setIsInitialLoading(true);
@@ -149,6 +158,10 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
           room_capacity: schedule.room_capacity,
           types: schedule.room_types,
         }]);
+
+        if (!isFacultyAdmin) {
+          await loadRooms(initialFormData.day_id, initialFormData.hour_id, initialFormData.week_type_id);
+        }
 
       } catch (error) {
         errorAlert('Xəta', 'Cədvəl məlumatı yüklənmədi');
@@ -212,11 +225,7 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
     setLoadingStates(prev => ({ ...prev, professors: true }));
     try {
       const res = await get(`/api/lessons/${lessonId}/professor/type/${lessonTypeId}`);
-      const profArr = Array.isArray(res.data)
-        ? res.data
-        : res.data && res.data.professor_id
-          ? [res.data]
-          : [];
+      let profArr = Array.isArray(res.data) ? res.data : res.data && res.data.professor_id ? [res.data] : [];
       setProfessors(profArr);
       setFormData((prev: any) => ({
         ...prev,
@@ -239,20 +248,35 @@ const EditLessonModal: React.FC<EditLessonModalProps> = ({
       return;
     }
 
+    const reqKey = `${facultyId}|${day_id}|${hour_id}|${week_type_id}`;
+    if (roomsRequestRef.current.inFlight && roomsRequestRef.current.key === reqKey) {
+      return;
+    }
+    roomsRequestRef.current = { key: reqKey, inFlight: true };
+
     setLoadingStates(prev => ({ ...prev, rooms: true }));
     try {
       const res = await get(`/api/rooms?day_id=${day_id}&hour_id=${hour_id}&week_type_id=${week_type_id}&faculty_id=${facultyId}`);
-      setRooms(res.data || []);
+      const roomsArr =
+        Array.isArray(res.data) ? res.data :
+          Array.isArray((res.data as any)?.data) ? (res.data as any).data :
+            [];
 
-      const isCurrentRoomAvailable = res.data.some((room: any) => room.id === formData.room_id);
+      setRooms(roomsArr);
+
+      const isCurrentRoomAvailable = roomsArr.some((room: any) => room.id === formData.room_id);
       if (!isCurrentRoomAvailable && formData.room_id) {
         setErrors(prev => ({ ...prev, room_id: 'Seçilmiş otaq bu vaxt üçün uyğun deyil. Yeni otaq seçin.' }));
       }
     } catch (error) {
-      setRooms([]);
-      errorAlert('Xəta', 'Otaq siyahısı yüklənmədi. Zəhmət olmasa yenidən cəhd edin.');
+      // If we already have rooms on screen, don't show a misleading "failed to load" alert.
+      setRooms(prev => (Array.isArray(prev) && prev.length > 0 ? prev : []));
+      if (!(Array.isArray(rooms) && rooms.length > 0)) {
+        errorAlert('Xəta', 'Otaq siyahısı yüklənmədi. Zəhmət olmasa yenidən cəhd edin.');
+      }
     } finally {
       setLoadingStates(prev => ({ ...prev, rooms: false }));
+      roomsRequestRef.current.inFlight = false;
     }
   };
 
@@ -361,6 +385,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     await put(`/api/schedules/${scheduGroupleId}`, postData);
     successAlert('Uğurlu', 'Dərs uğurla yeniləndi!');
+    await refreshSchedule();
     onClose();
     if (onSuccess) onSuccess();
   } catch (error: any) {

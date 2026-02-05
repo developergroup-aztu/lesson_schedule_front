@@ -1,4 +1,4 @@
-import React, { useEffect, useState, forwardRef, useCallback, useMemo, useRef, useImperativeHandle } from 'react';
+import { useEffect, useState, forwardRef, useCallback, useMemo, useRef, useImperativeHandle } from 'react';
 import { useSchedule } from '../../context/ScheduleContext';
 import TableHeader from './TableHeader';
 import ScheduleCell from './ScheduleCell';
@@ -28,7 +28,7 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
   onEditLesson,
   onOpenContextMenu,
 }, ref) => {
-  const { scheduleData } = useSchedule();
+  const { scheduleData, refreshSchedule } = useSchedule();
   const { user } = useAuth();
   const params = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -62,6 +62,49 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
   const [showGroupDropdown, setShowGroupDropdown] = useState<boolean>(false);
   const [showHourDropdown, setShowHourDropdown] = useState<boolean>(false);
   const [tableMaximized, setTableMaximized] = useState(false);
+  const filterInitializedRef = useRef(false); // Filtreleme ilk tetiklenmeyi kontrol et
+
+  // Lazy-loaded group options for filter dropdown
+  const [filterGroups, setFilterGroups] = useState<any[]>([]);
+  const groupOptionsReqRef = useRef<{ facultyId: string | number | undefined; inFlight: boolean }>({
+    facultyId: undefined,
+    inFlight: false,
+  });
+
+  const loadFilterGroups = useCallback(async () => {
+    if (!facultyId) return;
+
+    // If we already loaded for this faculty, don't refetch
+    if (filterGroups.length > 0 && groupOptionsReqRef.current.facultyId === facultyId) return;
+    if (groupOptionsReqRef.current.inFlight) return;
+
+    groupOptionsReqRef.current = { facultyId, inFlight: true };
+    try {
+      const res = await get(`/api/faculies/${facultyId}/groups/from-schedules`);
+      const dataArr =
+        Array.isArray(res.data) ? res.data :
+          Array.isArray((res.data as any)?.data) ? (res.data as any).data :
+            [];
+
+      // Normalize into { group_id, group_name } used by dropdown
+      const normalized = dataArr.map((g: any) => ({
+        group_id: g.group_id ?? g.id,
+        group_name: g.group_name ?? g.name,
+        ...g,
+      }));
+      setFilterGroups(normalized);
+    } catch {
+      setFilterGroups([]);
+    } finally {
+      groupOptionsReqRef.current.inFlight = false;
+    }
+  }, [facultyId, filterGroups.length]);
+
+  // Reset options when faculty changes
+  useEffect(() => {
+    setFilterGroups([]);
+    groupOptionsReqRef.current = { facultyId, inFlight: false };
+  }, [facultyId]);
 
   // Stats panel
   const [showStatsPanel, setShowStatsPanel] = useState<boolean>(() => {
@@ -109,14 +152,21 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
     }
   }, [selectedGroups, selectedHours]);
 
-  // Filter helpers
-  const filteredGroups = selectedGroups.length
-    ? groups.filter((g) => selectedGroups.includes(g.group_id))
-    : groups;
+  // Filtrlər dəyişdikdə backend-ə parametr göndərm
+  useEffect(() => {
+    // İlk mount'da tetiklenmə - ScheduleContext-dən gələn data istifadə edin
+    if (!filterInitializedRef.current) {
+      filterInitializedRef.current = true;
+      return;
+    }
+    
+    // Sadəcə filter değiştiğinde API çağrısı yap
+    refreshSchedule(selectedGroups.length > 0 ? selectedGroups : undefined, 
+                   selectedHours.length > 0 ? selectedHours : undefined);
+  }, [selectedGroups, selectedHours]);
 
-  const filteredHours = selectedHours.length
-    ? hours.filter((h) => selectedHours.includes(h.id))
-    : hours;
+  // Backend-dən gələn məlumatlar birbaşa istifadə olun (frontend filtrləmə yoxdur)
+  // Backend response-da artıq filtrlənmiş məlumatlar olacaq
 
   // Quick-select hour sets: first 3 as morning, next 3 as afternoon
   const morningHourIds = hours.slice(0, 3).map((h) => h.id);
@@ -124,9 +174,9 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
 
   // Memoized search filtered options - Bu performans problemini çözüyor
   const searchFilteredGroups = useMemo(() =>
-    groups.filter(g =>
+    filterGroups.filter(g =>
       g.group_name.toLowerCase().includes(groupSearch.toLowerCase())
-    ), [groups, groupSearch]
+    ), [filterGroups, groupSearch]
   );
 
   const searchFilteredHours = useMemo(() =>
@@ -200,16 +250,29 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
     const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
     useEffect(() => {
-      if (isOpen && buttonRef.current) {
+      const updatePosition = () => {
+        if (!isOpen || !buttonRef.current) return;
         const rect = buttonRef.current.getBoundingClientRect();
         setPosition({
           top: rect.bottom,
           left: rect.left,
-          width: rect.width
+          width: rect.width,
         });
-      } else if (!isOpen) {
-        setPosition(null);
+      };
+
+      if (isOpen) {
+        updatePosition();
+        // Keep dropdown attached to the trigger while scrolling/resizing
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        return () => {
+          window.removeEventListener('scroll', updatePosition, true);
+          window.removeEventListener('resize', updatePosition);
+        };
       }
+
+      setPosition(null);
+      return;
     }, [isOpen]);
 
     const dropdownContent = position && isOpen ? (
@@ -359,8 +422,12 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
           onSearchChange={setGroupSearch}
           isOpen={showGroupDropdown}
           onToggleOpen={() => {
-            setShowGroupDropdown(!showGroupDropdown);
+            const nextOpen = !showGroupDropdown;
+            setShowGroupDropdown(nextOpen);
             setShowHourDropdown(false);
+            if (nextOpen) {
+              loadFilterGroups();
+            }
           }}
           getItemId={(item: any) => item.group_id}
           getItemLabel={(item: any) => item.group_name}
@@ -489,9 +556,9 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
       <div ref={scrollContainerRef} className={`schedule-table-scroll overflow-auto ${tableMaximized ? 'h-[98vh]' : 'max-h-[80vh]'
         }`}>
         <table className="border-collapse w-full">
-          <TableHeader hours={filteredHours} />
+          <TableHeader hours={hours} />
           <tbody className="divide-y divide-slate-200/50">
-            {filteredGroups.map((group: any) => (
+            {groups.map((group: any) => (
               <tr key={group.group_id} className="transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 group">
                 <td className="group-name sticky left-0 z-1 bg-gradient-to-r from-slate-50/95 to-white/95 backdrop-blur-sm border-r border-slate-200/60 p-4 min-w-[150px]">
                   <div className="flex items-center gap-3">
@@ -503,7 +570,7 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
                 </td>
                 {Array.from({ length: 5 }).map((_, dayIndex: number) => {
                   const dayId = dayIndex + 1;
-                  return filteredHours.map((hour: HourType) => {
+                  return hours.map((hour: HourType) => {
                     const hourLessons = findLessons(group.group_id, dayId, hour.id);
                     return (
                       <ScheduleCell

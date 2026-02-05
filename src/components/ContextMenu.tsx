@@ -13,7 +13,7 @@ interface ContextMenuProps {
   hourId: number | null;
   lessonIndex: number | null;
   weekTypeId: number | null;
-  onEdit: () => void;
+  onEdit: (lesson?: any) => void;
   className?: string; // Add this prop to accept Tailwind classes
 }
 
@@ -25,7 +25,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   dayId,
   hourId,
   lessonIndex,
-  weekTypeId,
   onEdit,
   className, // Destructure the className prop
 }) => {
@@ -35,7 +34,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   const canEditLesson = usePermissions('edit_schedule');
   const canDeleteLesson = usePermissions('delete_schedule');
   const canLockLesson = usePermissions('lock_schedule');
-  const canAddLesson = usePermissions('schedule_lock');
 
 
 
@@ -44,7 +42,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   const getCurrentLesson = () => {
     if (
       !scheduleData ||
-      !scheduleData.groups ||
+      !(scheduleData as any).groups ||
       groupId === null ||
       dayId === null ||
       hourId === null ||
@@ -52,11 +50,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     ) {
       return null;
     }
-    const group = scheduleData.groups.find(g => g.group_id === groupId);
+    const group = (scheduleData as any).groups.find((g: any) => g.group_id === groupId);
     if (!group) return null;
     const day = group.days[dayId];
     if (!day) return null;
-    const hour = day.hours.find(h => h.hour_id === hourId);
+    const hour = day.hours.find((h: any) => h.hour_id === hourId);
     if (!hour || !hour.lessons[lessonIndex]) return null;
     return hour.lessons[lessonIndex];
   };
@@ -99,8 +97,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       return;
     }
 
-    console.log('Redaktə et kliklendi!');
-    onEdit();
+    console.log('Redaktə et kliklendi!', lesson);
+    onEdit(lesson);
     onClose();
   };
 

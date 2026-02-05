@@ -29,11 +29,12 @@ export const ScheduleProvider: React.FC<ScheduleProviderProps> = ({ children }) 
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const alertShownRef = useRef(false); 
+  const initialFetchDoneRef = useRef(false); // İlk yüklənmə bir dəfə olsun
 
     const scrollPositionRef = useRef(0);
 
 
-const fetchSchedule = useCallback(async () => {
+const fetchSchedule = useCallback(async (selectedGroupIds?: number[], selectedHourIds?: number[]) => {
   let facultyId: number | undefined;
   setLoading(true); 
 
@@ -55,7 +56,16 @@ const fetchSchedule = useCallback(async () => {
   }
 
   try {
-    const response = await get(`/api/faculties/${facultyId}`);
+    // Backend-də filter parametrlərini qurmaq
+    const queryParams: any = {};
+    if (selectedGroupIds && selectedGroupIds.length > 0) {
+      queryParams['group_id[]'] = selectedGroupIds;
+    }
+    if (selectedHourIds && selectedHourIds.length > 0) {
+      queryParams['hour_id[]'] = selectedHourIds;
+    }
+
+    const response = await get(`/api/faculties/${facultyId}`, queryParams);
     
     // Məlumatı set et
     if (response?.data) {
@@ -100,8 +110,12 @@ const fetchSchedule = useCallback(async () => {
 
   useEffect(() => {
     alertShownRef.current = false;
-    fetchSchedule();
-  }, [fetchSchedule]);
+    // İlk yüklənmə yalnız bir dəfə (faculty ID dəyişdikdə)
+    if (!initialFetchDoneRef.current) {
+      initialFetchDoneRef.current = true;
+      fetchSchedule();
+    }
+  }, [user, params.id]);
 
   useEffect(() => {
     if (loading || hasError) return;

@@ -23,6 +23,7 @@ interface ScheduleCellProps {
     hourId: number,
     lessonIndex: number,
     weekTypeId: number,
+    lessonData?: Lesson,
   ) => void;
   readOnly?: boolean;
 }
@@ -118,8 +119,8 @@ const ScheduleCell: React.FC<ScheduleCellProps> = ({
           hourId={hourId}
           isMultiple={lessons.length > 1}
           onOpenContextMenu={onOpenContextMenu}
-          onEdit={() =>
-            onEditLesson(groupId, dayId, hourId, getOriginalLessonIndex(weekTypeId, index), weekTypeId)
+          onEdit={(lessonData) =>
+            onEditLesson(groupId, dayId, hourId, getOriginalLessonIndex(weekTypeId, index), weekTypeId, lessonData)
           }
           onAddBeside={lesson.lock_id === 1 && !readOnly ? () => handleAddBeside(weekTypeId, index) : undefined}
           readOnly={readOnly}
