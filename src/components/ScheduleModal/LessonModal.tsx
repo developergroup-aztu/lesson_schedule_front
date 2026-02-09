@@ -21,14 +21,14 @@ const LessonModal: React.FC<AddLessonModalProps> = ({
   modalData,
   onSuccess = () => { },
 }) => {
-  const { scheduleData, refreshSchedule } = useSchedule();
+  const { scheduleData } = useSchedule();
   const { user } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
   const params = useParams();
 
-  const facultyId = (user as any)?.faculty_id || scheduleData.faculty?.faculty_id || params.id;
-  const facultyName = (user as any)?.faculty_name || scheduleData.faculty?.faculty_name;
-  // const isFacultyAdmin = (user as any)?.roles?.includes('FacultyAdmin');
+  const facultyId = user.faculty_id || scheduleData.faculty?.faculty_id || params.id;
+  const facultyName = user?.faculty_name || scheduleData.faculty?.faculty_name;
+  const isFacultyAdmin = user?.roles.includes('FacultyAdmin');
 
   // State-lər
   const [groups, setGroups] = useState<any[]>([]);
@@ -370,7 +370,7 @@ const loadGroups = async () => {
     try {
       const response = await get(`/api/lessons/${lessonId}/professor/type/${lessonTypeId}`);
 
-      let professorsData: any[] = [];
+      let professorsData = [];
       if (response.data && Array.isArray(response.data)) {
         professorsData = response.data;
       } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
@@ -384,7 +384,7 @@ const loadGroups = async () => {
       setLoadedData(prev => ({ ...prev, lessonTypeProfessors: true }));
 
       if (professorsData.length > 0) {
-        setFormData((prev: any) => ({
+        setFormData(prev => ({
           ...prev,
           teacher_code: professorsData[0].professor_id
         }));
@@ -427,16 +427,15 @@ const loadGroups = async () => {
 
     try {
       // Yuxarıda göstərdiyin endpoint formatını istifadə edirəm.
-      const endpoint = `/api/rooms?week_type_id=${formData.week_type_id}&day_id=${formData.day_id}&hour_id=${formData.hour_id}&faculty_id=${facultyId}`;
+      const endpoint = `/api/rooms?week_type_id=${formData.week_type_id}&day_id=${formData.day_id}&hour_id=${formData.hour_id}`;
       const response = await get(endpoint);
 
-      // API bəzən { data: [...] } formatında qayıdır
-      const roomsArr =
-        Array.isArray(response.data) ? response.data :
-          Array.isArray((response.data as any)?.data) ? (response.data as any).data :
-            [];
-
-      setRooms(roomsArr);
+      // API-dən gələn datanı yoxlayıram və `setRooms` ilə state-ə yazıram.
+      if (response.data && Array.isArray(response.data)) {
+        setRooms(response.data);
+      } else {
+        setRooms([]);
+      }
 
       // Yüklənmə prosesinin bitdiyini qeyd edirəm.
       setLoadedData(prev => ({ ...prev, rooms: true }));
@@ -565,14 +564,18 @@ const loadGroups = async () => {
         postData.room_id = Number(formData.room_id);
       }
 
-      await post('/api/schedules', postData);
+      const response = await post('/api/schedules', postData);
 
       successAlert('Uğurlu', 'Dərs uğurla əlavə olundu!');
 
-      // Refresh table immediately (no manual page refresh)
-      await refreshSchedule();
-      onClose();
-      if (onSuccess) onSuccess();
+      if (onSuccess) {
+        onSuccess(
+          groupId,
+          Number(formData.day_id),
+          Number(formData.hour_id),
+          response.data
+        );
+      }
     } catch (error: any) {
       let message = 'Xəta baş verdi! Zəhmət olmasa yenidən cəhd edin.';
       if (error?.response?.data?.message) {
@@ -879,7 +882,7 @@ const loadGroups = async () => {
                     { id: '', name: 'Secin' }, // "Secin" seçimi əlavə olundu
                     ...rooms.map((room) => {
                       if (room.conflict_info && room.conflict_info.length > 0) {
-                        const conflictGroups = room.conflict_info.map((conflict: any) => conflict.group).join(', ');
+                        const conflictGroups = room.conflict_info.map(conflict => conflict.group).join(', ');
                         const prefix = `${room.corp_id}-${room.name} (${room.types}) Tutum: ${room.room_capacity} -`;
                         return {
                           id: room.id,

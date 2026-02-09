@@ -1,4 +1,4 @@
-import { useEffect, useState, forwardRef, useCallback, useMemo, useRef, useImperativeHandle } from 'react';
+import React, { useEffect, useState, forwardRef, useCallback, useMemo, useRef, useImperativeHandle } from 'react';
 import { useSchedule } from '../../context/ScheduleContext';
 import TableHeader from './TableHeader';
 import ScheduleCell from './ScheduleCell';
@@ -63,48 +63,6 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
   const [showHourDropdown, setShowHourDropdown] = useState<boolean>(false);
   const [tableMaximized, setTableMaximized] = useState(false);
   const filterInitializedRef = useRef(false); // Filtreleme ilk tetiklenmeyi kontrol et
-
-  // Lazy-loaded group options for filter dropdown
-  const [filterGroups, setFilterGroups] = useState<any[]>([]);
-  const groupOptionsReqRef = useRef<{ facultyId: string | number | undefined; inFlight: boolean }>({
-    facultyId: undefined,
-    inFlight: false,
-  });
-
-  const loadFilterGroups = useCallback(async () => {
-    if (!facultyId) return;
-
-    // If we already loaded for this faculty, don't refetch
-    if (filterGroups.length > 0 && groupOptionsReqRef.current.facultyId === facultyId) return;
-    if (groupOptionsReqRef.current.inFlight) return;
-
-    groupOptionsReqRef.current = { facultyId, inFlight: true };
-    try {
-      const res = await get(`/api/faculies/${facultyId}/groups/from-schedules`);
-      const dataArr =
-        Array.isArray(res.data) ? res.data :
-          Array.isArray((res.data as any)?.data) ? (res.data as any).data :
-            [];
-
-      // Normalize into { group_id, group_name } used by dropdown
-      const normalized = dataArr.map((g: any) => ({
-        group_id: g.group_id ?? g.id,
-        group_name: g.group_name ?? g.name,
-        ...g,
-      }));
-      setFilterGroups(normalized);
-    } catch {
-      setFilterGroups([]);
-    } finally {
-      groupOptionsReqRef.current.inFlight = false;
-    }
-  }, [facultyId, filterGroups.length]);
-
-  // Reset options when faculty changes
-  useEffect(() => {
-    setFilterGroups([]);
-    groupOptionsReqRef.current = { facultyId, inFlight: false };
-  }, [facultyId]);
 
   // Stats panel
   const [showStatsPanel, setShowStatsPanel] = useState<boolean>(() => {
@@ -174,9 +132,9 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
 
   // Memoized search filtered options - Bu performans problemini çözüyor
   const searchFilteredGroups = useMemo(() =>
-    filterGroups.filter(g =>
+    groups.filter(g =>
       g.group_name.toLowerCase().includes(groupSearch.toLowerCase())
-    ), [filterGroups, groupSearch]
+    ), [groups, groupSearch]
   );
 
   const searchFilteredHours = useMemo(() =>
@@ -250,29 +208,16 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
     const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
     useEffect(() => {
-      const updatePosition = () => {
-        if (!isOpen || !buttonRef.current) return;
+      if (isOpen && buttonRef.current) {
         const rect = buttonRef.current.getBoundingClientRect();
         setPosition({
           top: rect.bottom,
           left: rect.left,
-          width: rect.width,
+          width: rect.width
         });
-      };
-
-      if (isOpen) {
-        updatePosition();
-        // Keep dropdown attached to the trigger while scrolling/resizing
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-        return () => {
-          window.removeEventListener('scroll', updatePosition, true);
-          window.removeEventListener('resize', updatePosition);
-        };
+      } else if (!isOpen) {
+        setPosition(null);
       }
-
-      setPosition(null);
-      return;
     }, [isOpen]);
 
     const dropdownContent = position && isOpen ? (
@@ -422,12 +367,8 @@ const ScheduleTable = forwardRef<ScheduleTableHandle, {
           onSearchChange={setGroupSearch}
           isOpen={showGroupDropdown}
           onToggleOpen={() => {
-            const nextOpen = !showGroupDropdown;
-            setShowGroupDropdown(nextOpen);
+            setShowGroupDropdown(!showGroupDropdown);
             setShowHourDropdown(false);
-            if (nextOpen) {
-              loadFilterGroups();
-            }
           }}
           getItemId={(item: any) => item.group_id}
           getItemLabel={(item: any) => item.group_name}

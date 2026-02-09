@@ -18,10 +18,6 @@ import {
 function Schedule() {
   const { scheduleData } = useSchedule();
 
-  // `ScheduleContext` normalizes groups as `scheduleData.groups`.
-  // Older code sometimes expects `scheduleData.faculty.groups`, so we support both.
-  const groups: any[] = (scheduleData as any)?.groups || (scheduleData as any)?.faculty?.groups || [];
-
   const scheduleTableRef = useRef<ScheduleTableHandle | null>(null);
 
   const [savedScroll, setSavedScroll] = useState({
@@ -128,15 +124,15 @@ function Schedule() {
     let dayName = null;
     let hourName = null;
 
-    if (groupId && groups) {
-      const group = groups.find((g: any) => g.group_id === groupId);
+    if (groupId && scheduleData?.faculty?.groups) {
+      const group = scheduleData.faculty.groups.find((g: any) => g.group_id === groupId);
       groupName = group ? group.group_name : null;
 
       if (dayId !== null && group?.days[dayId]) {
         dayName = group.days[dayId].day_name;
       }
 
-      if (dayId !== null && hourId !== null && group?.days[dayId]?.hours) {
+      if (hourId !== null && group?.days[dayId]?.hours) {
         const hour = group.days[dayId].hours.find((h: any) => h.hour_id === hourId);
         hourName = hour ? hour.hour_value : null;
       }
@@ -182,7 +178,7 @@ function Schedule() {
     weekTypeId: number = 1,
   ) => {
     saveScrollPositions();
-    const group = groups?.find((g: any) => g.group_id === groupId);
+    const group = scheduleData?.faculty?.groups?.find((g: any) => g.group_id === groupId);
     const day = group?.days[dayId];
     const hour = day?.hours.find((h: any) => h.hour_id === hourId);
     const lesson = hour?.lessons[lessonIndex] || null;
@@ -227,12 +223,12 @@ function Schedule() {
   };
 
   const handleOpenContextMenu = (
-    e: React.MouseEvent,
-    groupId: number,
-    dayId: number,
-    hourId: number,
-    lessonIndex: number,
-    weekTypeId: number | null = null,
+    e,
+    groupId,
+    dayId,
+    hourId,
+    lessonIndex,
+    weekTypeId = null,
   ) => {
     e.preventDefault();
     setContextMenu({
@@ -274,7 +270,7 @@ function Schedule() {
     handleCloseContextMenu();
   };
 
-  const totalLessons = groups?.reduce((total: number, group: any) => {
+  const totalLessons = scheduleData?.faculty?.groups?.reduce((total: number, group: any) => {
     return (
       total +
       Object.values(group.days).reduce((dayTotal: number, day: any) => {
@@ -288,7 +284,7 @@ function Schedule() {
     );
   }, 0) || 0;
 
-  const activeGroups = groups?.length || 0;
+  const activeGroups = scheduleData?.faculty?.groups?.length || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-indigo-50 relative overflow-hidden">
